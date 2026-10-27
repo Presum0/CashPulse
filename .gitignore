@@ -1,0 +1,41 @@
+# ===== Python / FastAPI =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+*.env
+*.env.local
+
+# SQLite databases (keep schema, not data)
+*.db
+*.sqlite
+*.sqlite3
+
+# ===== Next.js / Node =====
+node_modules/
+.next/
+.turbo/
+out/
+.vercel/
+.DS_Store
+*.tsbuildinfo
+
+# ===== Env & Secrets =====
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===== Misc =====
+*.log
+.idea/
+.vscode/
+*.swp
