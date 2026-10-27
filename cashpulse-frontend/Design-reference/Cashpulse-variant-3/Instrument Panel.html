@@ -1,0 +1,302 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bricolage%20Grotesque:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic&amp;subset=all"><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=DM%20Mono:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic&amp;subset=all"><link rel="stylesheet" href="assets/Instrument%20Panel.css"></head><body style="margin: 0"><div style="position: relative; overflow: hidden; width: 1440px; height: 900px"><div class="relative flex h-full w-full overflow-hidden bg-[#0B0B0A] font-['Bricolage_Grotesque'] text-[#EDE9DF] antialiased">
+
+  <!-- ============ NAV RAIL ============ -->
+  <nav class="flex w-[76px] shrink-0 flex-col items-center border-r border-[#23231D] py-[16px]">
+    <div class="flex h-[34px] w-[34px] items-center justify-center bg-[#C8F14E]">
+      <svg viewBox="0 0 24 12" class="h-[15px] w-[20px] fill-none stroke-[#0B0B0A]" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 6h4l2.5-4.6 3 9.2L13 6h10"/></svg>
+    </div>
+
+    <div class="mt-[26px] flex flex-col items-center gap-[7px]">
+      <div class="flex h-[40px] w-[44px] items-center justify-center bg-[#C8F14E] text-[#0B0B0A]">
+        <svg viewBox="0 0 20 14" class="h-[14px] w-[18px] fill-none stroke-[#0B0B0A]" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 11.5 6 5.5l3.5 3L18 2"/></svg>
+      </div>
+      <div class="flex h-[44px] w-[44px] items-center justify-center">
+        <svg viewBox="0 0 18 16" class="h-[15px] w-[17px] fill-none stroke-[#8A867A]" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M9 1.5 17 14.5H1z"/><path d="M9 6.2v3.6"/><circle cx="9" cy="11.9" r="0.6" fill="#8A867A"/></svg>
+      </div>
+      <div class="flex h-[44px] w-[44px] items-center justify-center">
+        <svg viewBox="0 0 18 18" class="h-[15px] w-[15px] fill-none stroke-[#8A867A]" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="1.5" width="15" height="15"/><path d="M5 9l2.6 2.8L13 6"/></svg>
+      </div>
+      <div class="flex h-[44px] w-[44px] items-center justify-center">
+        <svg viewBox="0 0 18 18" class="h-[15px] w-[15px] fill-none stroke-[#8A867A]" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M1.5 4.5h15M1.5 9h15M1.5 13.5h9"/></svg>
+      </div>
+    </div>
+
+    <div class="mt-auto flex flex-col items-center gap-[10px]">
+      <span class="h-px w-[20px] bg-[#2C2C24]"></span>
+      <div class="flex h-[30px] w-[30px] items-center justify-center border border-[#3A3A30] font-['DM_Mono'] text-[9px] tracking-[0.02em] text-[#C9C4B6]">DO</div>
+    </div>
+  </nav>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+
+    <!-- ============ TOP BAR ============ -->
+    <header class="flex h-[60px] shrink-0 items-center justify-between border-b border-[#23231D] px-[22px]">
+      <div class="flex items-center gap-[14px]">
+        <div class="flex items-center gap-[3px] border border-[#2E2D26] p-[3px]">
+          <span class="flex items-center gap-[6px] bg-[#EDE9DF] px-[9px] py-[5px] text-[11px] font-medium leading-none tracking-[-0.01em] text-[#0B0B0A]">
+            <span class="h-[5px] w-[5px] rounded-full bg-[#FF5A36]"></span>
+            Harbourline Logistics
+          </span>
+          <span class="flex items-center gap-[6px] px-[9px] py-[5px] text-[11px] leading-none tracking-[-0.01em] text-[#8A867A]">
+            <span class="h-[5px] w-[5px] rounded-full bg-[#3F7A52]"></span>
+            Meridian Foods
+          </span>
+        </div>
+        <p class="font-['DM_Mono'] text-[8.5px] uppercase leading-none tracking-[0.18em] text-[#6E6C64]">13-week forecast · model v3.4</p>
+      </div>
+
+      <div class="flex items-center gap-[14px]">
+        <p class="font-['DM_Mono'] text-[8.5px] uppercase leading-none tracking-[0.14em] text-[#8A867A]">Fri 14 Feb · 08:12 GMT</p>
+        <div class="flex items-center gap-[7px] border border-[#FF5A36]/55 px-[10px] py-[5px]">
+          <span class="h-[6px] w-[6px] rounded-full bg-[#FF5A36]"></span>
+          <p class="font-['DM_Mono'] text-[9px] uppercase leading-none tracking-[0.2em] text-[#FF5A36]">deficit</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex min-h-0 flex-1">
+
+      <!-- ============ READOUT COLUMN ============ -->
+      <div class="flex min-w-0 flex-1 flex-col">
+
+        <section class="flex shrink-0 items-end border-b border-[#23231D] px-[26px] pb-[16px] pt-[18px]">
+          <div>
+            <p class="font-['DM_Mono'] text-[8.5px] uppercase leading-none tracking-[0.2em] text-[#8A867A]">Low-water mark · 28 Mar</p>
+            <p class="mt-[7px] text-[58px] font-semibold leading-[0.82] tracking-[-0.05em] text-[#FF5A36]">−$38.6k</p>
+          </div>
+
+          <div class="mx-[26px] h-[62px] w-px bg-[#23231D]"></div>
+
+          <div>
+            <p class="font-['DM_Mono'] text-[8.5px] uppercase leading-none tracking-[0.2em] text-[#8A867A]">Runway to zero · 23 Mar</p>
+            <p class="mt-[7px] flex items-baseline gap-[7px] text-[#EDE9DF]">
+              <span class="text-[58px] font-semibold leading-[0.82] tracking-[-0.05em]">37</span>
+              <span class="text-[13px] font-medium leading-none tracking-[0.02em] text-[#8A867A]">days</span>
+            </p>
+          </div>
+
+          <div class="ml-auto flex items-end gap-[24px]">
+            <div>
+              <p class="font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.18em] text-[#6E6C64]">Starting cash</p>
+              <p class="mt-[6px] text-[17px] font-medium leading-none tracking-[-0.02em]">$482.4k</p>
+            </div>
+            <div>
+              <p class="font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.18em] text-[#6E6C64]">Ending cash</p>
+              <p class="mt-[6px] text-[17px] font-medium leading-none tracking-[-0.02em] text-[#FF5A36]">−$18.9k</p>
+            </div>
+            <div>
+              <p class="font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.18em] text-[#6E6C64]">Monthly burn</p>
+              <p class="mt-[6px] text-[17px] font-medium leading-none tracking-[-0.02em]">$74.3k</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- chart band -->
+        <figure class="flex min-h-0 flex-1 flex-col px-[26px] pb-[4px] pt-[12px]">
+          <div class="flex shrink-0 items-baseline justify-between">
+            <div class="flex items-baseline gap-[10px]">
+              <p class="font-['DM_Mono'] text-[8.5px] uppercase leading-none tracking-[0.2em]">Cash velocity · 13 weeks</p>
+              <p class="font-['DM_Mono'] text-[8px] uppercase leading-none tracking-[0.1em] text-[#6E6C64]">weekly close, usd</p>
+            </div>
+            <div class="flex items-center gap-[14px]">
+              <span class="flex items-center gap-[6px] font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.14em] text-[#8A867A]"><span class="h-[2px] w-[14px] bg-[#EDE9DF]"></span>actual</span>
+              <span class="flex items-center gap-[6px] font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.14em] text-[#C8F14E]"><span class="h-[2px] w-[14px] bg-[#C8F14E]"></span>forecast</span>
+              <span class="flex items-center gap-[6px] font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.14em] text-[#FF5A36]"><span class="h-[6px] w-[12px] bg-[#FF5A36]/50"></span>deficit</span>
+            </div>
+          </div>
+
+          <svg viewBox="0 0 880 620" preserveAspectRatio="xMidYMid meet" class="mt-[10px] min-h-0 w-full flex-1" aria-label="13-week cash forecast">
+            <!-- week grid -->
+            <g stroke="#1B1B16" stroke-width="1">
+              <line x1="46" y1="24" x2="46" y2="560"/>
+              <line x1="113.2" y1="24" x2="113.2" y2="560"/>
+              <line x1="180.3" y1="24" x2="180.3" y2="560"/>
+              <line x1="247.5" y1="24" x2="247.5" y2="560"/>
+              <line x1="314.7" y1="24" x2="314.7" y2="560"/>
+              <line x1="381.8" y1="24" x2="381.8" y2="560"/>
+              <line x1="449" y1="24" x2="449" y2="560"/>
+              <line x1="516.2" y1="24" x2="516.2" y2="560"/>
+              <line x1="583.3" y1="24" x2="583.3" y2="560"/>
+              <line x1="650.5" y1="24" x2="650.5" y2="560"/>
+              <line x1="717.7" y1="24" x2="717.7" y2="560"/>
+              <line x1="784.8" y1="24" x2="784.8" y2="560"/>
+              <line x1="852" y1="24" x2="852" y2="560"/>
+            </g>
+
+            <!-- value guides -->
+            <g stroke="#23231D" stroke-width="1" stroke-dasharray="2 6">
+              <line x1="46" y1="144.3" x2="852" y2="144.3"/>
+              <line x1="46" y1="298.2" x2="852" y2="298.2"/>
+            </g>
+            <g class="font-['DM_Mono']" font-size="9" fill="#6E6C64" text-anchor="end">
+              <text x="38" y="147.3">&#x24;400k</text>
+              <text x="38" y="301.2">&#x24;200k</text>
+              <text x="38" y="455">&#x24;0</text>
+            </g>
+
+            <!-- policy floor -->
+            <line x1="46" y1="359.7" x2="852" y2="359.7" stroke="#5C5A4E" stroke-width="1" stroke-dasharray="5 5"/>
+            <text class="font-['DM_Mono']" x="852" y="353" font-size="8" letter-spacing="1" text-anchor="end" fill="#6E6C64">POLICY FLOOR &#x24;120,000</text>
+
+            <!-- positive area -->
+            <path d="M46 80.9 L113.2 88.9 L180.3 104.1 L247.5 122.3 L314.7 174.2 L381.8 219.4 L449 276.1 L516.2 330.4 L583.3 436.6 L606.2 452 L46 452 Z" fill="#8A867A" fill-opacity="0.1"/>
+            <!-- deficit area -->
+            <path d="M606.2 452 L650.5 481.7 L717.7 472.7 L784.8 462.9 L852 466.5 L852 452 Z" fill="#FF5A36" fill-opacity="0.45"/>
+
+            <!-- zero line -->
+            <line x1="46" y1="452" x2="852" y2="452" stroke="#4A483D" stroke-width="1"/>
+
+            <!-- actual -->
+            <path d="M46 80.9 L113.2 88.9 L180.3 104.1 L247.5 122.3" fill="none" stroke="#EDE9DF" stroke-width="2.4" stroke-linecap="round"/>
+            <!-- forecast -->
+            <path d="M247.5 122.3 L314.7 174.2 L381.8 219.4 L449 276.1 L516.2 330.4 L583.3 436.6 L606.2 452 L650.5 481.7 L717.7 472.7 L784.8 462.9 L852 466.5" fill="none" stroke="#C8F14E" stroke-width="2.1" stroke-linecap="round"/>
+
+            <!-- today -->
+            <line x1="247.5" y1="24" x2="247.5" y2="545" stroke="#8A867A" stroke-width="1" stroke-dasharray="3 4" stroke-opacity="0.75"/>
+            <text class="font-['DM_Mono']" x="254" y="42" font-size="8" letter-spacing="1.3" fill="#8A867A">TODAY</text>
+
+            <!-- trough -->
+            <circle cx="650.5" cy="481.7" r="4.5" fill="#FF5A36"/>
+            <text class="font-['DM_Mono']" x="650.5" y="507" font-size="9.5" letter-spacing="0.5" text-anchor="middle" fill="#FF5A36">&#x2212;&#x24;38.6k &#xb7; 28 Mar</text>
+
+            <!-- week labels -->
+            <g class="font-['DM_Mono']" font-size="9" fill="#6E6C64" text-anchor="middle">
+              <text x="46" y="585">24 Jan</text>
+              <text x="113.2" y="585">31 Jan</text>
+              <text x="180.3" y="585">7 Feb</text>
+              <text x="247.5" y="585">14 Feb</text>
+              <text x="314.7" y="585">21 Feb</text>
+              <text x="381.8" y="585">28 Feb</text>
+              <text x="449" y="585">7 Mar</text>
+              <text x="516.2" y="585">14 Mar</text>
+              <text x="583.3" y="585">21 Mar</text>
+              <text x="650.5" y="585">28 Mar</text>
+              <text x="717.7" y="585">4 Apr</text>
+              <text x="784.8" y="585">11 Apr</text>
+              <text x="852" y="585">18 Apr</text>
+            </g>
+          </svg>
+        </figure>
+
+        <div class="flex shrink-0 items-center justify-between border-t border-[#23231D] px-[26px] py-[9px]">
+          <p class="font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.14em] text-[#6E6C64]">buffer floor breached 21 feb · 3 levers modelled, none applied</p>
+          <p class="font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.14em] text-[#6E6C64]">xero · barclays · stripe · vat portal</p>
+        </div>
+      </div>
+
+      <!-- ============ COPILOT RAIL ============ -->
+      <aside class="flex w-[404px] shrink-0 flex-col border-l border-[#23231D] bg-[#0E0E0C]">
+
+        <div class="flex shrink-0 items-center justify-between border-b border-[#23231D] px-[18px] py-[12px]">
+          <div class="flex items-center gap-[8px]">
+            <svg viewBox="0 0 24 12" class="h-[9px] w-[18px] fill-none stroke-[#C8F14E]" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 6h4.5l2.5-4.4 3 8.8 2.6-4.4H23"/></svg>
+            <p class="font-['DM_Mono'] text-[9px] uppercase leading-none tracking-[0.2em]">Copilot</p>
+          </div>
+          <p class="font-['DM_Mono'] text-[8px] uppercase leading-none tracking-[0.12em] text-[#6E6C64]">3 queued</p>
+        </div>
+
+        <div class="shrink-0 border-b border-[#23231D] px-[18px] py-[12px]">
+          <p class="text-[11.5px] leading-[1.55] tracking-[-0.005em] text-[#C9C4B6]">Cash goes negative on <span class="font-medium text-[#FF5A36]">23 Mar</span> and bottoms at <span class="font-medium text-[#FF5A36]">−$38.6k</span> on 28 Mar. Receivables are the swing: DSO has drifted 48 → 61 days since December. Three levers restore the buffer — <span class="font-medium text-[#C8F14E]">$46.8k is drafted</span> and waiting for a signature.</p>
+        </div>
+
+        <div class="shrink-0 border-b border-[#23231D]">
+          <div class="flex items-center justify-between border-b border-[#1B1B16] px-[18px] py-[8px]">
+            <div class="flex items-center gap-[8px]">
+              <span class="bg-[#FF5A36] px-[5px] py-[2.5px] font-['DM_Mono'] text-[7px] leading-none tracking-[0.14em] text-[#0B0B0A]">HIGH</span>
+              <p class="text-[11.5px] font-medium leading-none tracking-[-0.01em]">Shortfall breach</p>
+            </div>
+            <p class="font-['DM_Mono'] text-[8px] leading-none text-[#6E6C64]">23 Mar</p>
+          </div>
+          <div class="flex items-center justify-between border-b border-[#1B1B16] px-[18px] py-[8px]">
+            <div class="flex items-center gap-[8px]">
+              <span class="bg-[#FF5A36] px-[5px] py-[2.5px] font-['DM_Mono'] text-[7px] leading-none tracking-[0.14em] text-[#0B0B0A]">HIGH</span>
+              <p class="text-[11.5px] font-medium leading-none tracking-[-0.01em]">VAT settlement uncovered</p>
+            </div>
+            <p class="font-['DM_Mono'] text-[8px] leading-none text-[#6E6C64]">7 Mar</p>
+          </div>
+          <div class="flex items-center justify-between px-[18px] py-[8px]">
+            <div class="flex items-center gap-[8px]">
+              <span class="border border-[#6E6C64] px-[5px] py-[2px] font-['DM_Mono'] text-[7px] leading-none tracking-[0.14em] text-[#8A867A]">MED</span>
+              <p class="text-[11.5px] font-medium leading-none tracking-[-0.01em]">Buffer below floor</p>
+            </div>
+            <p class="font-['DM_Mono'] text-[8px] leading-none text-[#6E6C64]">21 Feb</p>
+          </div>
+        </div>
+
+        <!-- pending approval, inline -->
+        <div class="flex min-h-0 flex-1 flex-col px-[14px] pb-[10px] pt-[11px]">
+          <div class="flex min-h-0 flex-1 flex-col border border-[#3A3A30] bg-[#121210]">
+            <div class="flex shrink-0 items-center justify-between border-b border-[#2A2A22] px-[13px] py-[8px]">
+              <p class="font-['DM_Mono'] text-[7.5px] uppercase leading-none tracking-[0.18em] text-[#8A867A]">Pending · 01 · ar acceleration</p>
+              <p class="font-['DM_Mono'] text-[9.5px] font-medium leading-none tracking-[0.02em] text-[#C8F14E]">+$46.8k</p>
+            </div>
+
+            <div class="flex shrink-0 items-baseline gap-[9px] border-b border-[#1F1F1A] px-[13px] py-[7px]">
+              <p class="w-[36px] font-['DM_Mono'] text-[7px] uppercase leading-none tracking-[0.16em] text-[#6E6C64]">to</p>
+              <p class="text-[11px] leading-none tracking-[-0.005em]">A. Whitmore · Northgate Freight</p>
+            </div>
+            <div class="flex shrink-0 items-start gap-[9px] border-b border-[#1F1F1A] px-[13px] py-[7px]">
+              <p class="mt-[1px] w-[36px] font-['DM_Mono'] text-[7px] uppercase leading-tight tracking-[0.16em] text-[#6E6C64]">subj</p>
+              <p class="text-[11.5px] font-medium leading-[1.3] tracking-[-0.01em]">Invoice 4417 — $18,400 open, payment date needed this week</p>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-hidden px-[13px] py-[10px]">
+              <p class="text-[10.5px] leading-[1.62] text-[#B5B0A3]">Dear Ms Whitmore,</p>
+              <p class="mt-[6px] text-[#B5B0A3] text-[11px] leading-[1.6]">Invoice 4417 for $18,400 fell due on 3 February and is still open. Two further invoices — 4432 and 4448 — are now 14 and 9 days past terms, bringing the account balance to $46,800.</p>
+              <p class="mt-[6px] text-[11px] leading-[1.6] text-[#B5B0A3]">We value the six-year relationship and would like your Net-30 terms to stay exactly as they are. Could you confirm a payment date for the open balance this week? If a single payment is awkward, we can split it across two instalments in March.</p>
+              <p class="mt-[7px] text-[11px] leading-[1.6] text-[#8A867A]">Untouched: terms, discount, escalation. Tone: firm, relationship-preserving.</p>
+            </div>
+
+            <div class="grid shrink-0 grid-cols-3 border-t border-[#2A2A22]">
+              <div class="border-r border-[#262620] px-[11px] py-[7px]">
+                <p class="font-['DM_Mono'] text-[6.5px] uppercase leading-none tracking-[0.16em] text-[#6E6C64]">Ending cash</p>
+                <p class="mt-[5px] text-[11.5px] font-medium leading-none tracking-[-0.01em]">$27.9k</p>
+              </div>
+              <div class="border-r border-[#262620] px-[11px] py-[7px]">
+                <p class="font-['DM_Mono'] text-[6.5px] uppercase leading-none tracking-[0.16em] text-[#6E6C64]">Runway</p>
+                <p class="mt-[5px] text-[11.5px] font-medium leading-none tracking-[-0.01em]">+19 days</p>
+              </div>
+              <div class="px-[11px] py-[7px]">
+                <p class="font-['DM_Mono'] text-[6.5px] uppercase leading-none tracking-[0.16em] text-[#6E6C64]">Execute</p>
+                <p class="mt-[5px] text-[11.5px] font-medium leading-none tracking-[-0.01em]">24–48 hrs</p>
+              </div>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-[7px] border-t border-[#2A2A22] px-[11px] py-[9px]">
+              <div class="flex flex-1 items-center justify-center gap-[7px] bg-[#C8F14E] px-[10px] py-[8px]">
+                <svg viewBox="0 0 10 8" class="h-[7px] w-[9px] fill-none stroke-[#0B0B0A]" stroke-width="1.9" aria-hidden="true"><path d="M1 4 3.6 6.8 9 1"/></svg>
+                <p class="text-[11.5px] font-semibold leading-none tracking-[-0.005em] text-[#0B0B0A]">Approve &amp; send</p>
+              </div>
+              <div class="flex items-center justify-center border border-[#3A3A30] px-[11px] py-[8px]">
+                <p class="text-[11.5px] font-medium leading-none text-[#C9C4B6]">Edit</p>
+              </div>
+              <div class="flex h-[31px] w-[31px] items-center justify-center border border-[#3A3A30]">
+                <svg viewBox="0 0 12 12" class="h-[8px] w-[8px] fill-none stroke-[#8A867A]" stroke-width="1.6" aria-hidden="true"><path d="M1 1 11 11M11 1 1 11"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-[9px] shrink-0 border-t border-[#1F1F1A]">
+            <div class="flex items-center justify-between border-b border-[#1B1B16] py-[7px]">
+              <div class="flex items-baseline gap-[8px]">
+                <p class="font-['DM_Mono'] text-[7px] leading-none tracking-[0.14em] text-[#5F5D54]">02</p>
+                <p class="text-[10.5px] leading-none tracking-[-0.005em] text-[#A8A398]">Vendor Net-30 → Net-60 extensions</p>
+              </div>
+              <p class="font-['DM_Mono'] text-[9px] leading-none text-[#8A867A]">+$31.2k</p>
+            </div>
+            <div class="flex items-center justify-between border-b border-[#1B1B16] py-[7px]">
+              <div class="flex items-baseline gap-[8px]">
+                <p class="font-['DM_Mono'] text-[7px] leading-none tracking-[0.14em] text-[#5F5D54]">03</p>
+                <p class="text-[10.5px] leading-none tracking-[-0.005em] text-[#A8A398]">First Meridian bridge facility</p>
+              </div>
+              <p class="font-['DM_Mono'] text-[9px] leading-none text-[#8A867A]">+$75.0k</p>
+            </div>
+            <p class="pt-[7px] font-['DM_Mono'] text-[6.5px] uppercase leading-none tracking-[0.14em] text-[#5F5D54]">⌘↵ approve · ⇧⌘r reject · ledger syncs in 4s</p>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </div>
+</div>
+</div></body></html>

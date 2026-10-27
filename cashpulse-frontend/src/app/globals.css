@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --font-archivo: var(--font-archivo), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-fraunces: var(--font-fraunces), Georgia, serif;
+  --font-mono: var(--font-ibm-mono), Menlo, Monaco, Consolas, monospace;
+
+  --color-parchment: #F1EDE3;
+  --color-parchment-subtle: #E9E3D3;
+  --color-card-light: #F6F2E8;
+  --color-card-white: #FFFDF7;
+  --color-ink: #17150F;
+  --color-ink-muted: #5E594D;
+  --color-ink-dim: #7A7364;
+  --color-ink-faint: #8A8272;
+  --color-deficit: #B23428;
+  --color-neon: #C8F14E;
+  --color-actual-green: #2F5D3A;
+  --color-rule: #BDB5A2;
+  --color-rule-subtle: #D6CEBC;
+  --color-rule-faint: #EAE3D2;
+}
+
+:root {
+  --background: #F1EDE3;
+  --foreground: #17150F;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-archivo), sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Explicit font family mapping classes matching reference templates */
+.font-fraunces,
+[class*="font-['Fraunces']"],
+[class*='font-["Fraunces"]'] {
+  font-family: var(--font-fraunces), serif !important;
+}
+
+.font-archivo,
+[class*="font-['Archivo']"],
+[class*='font-["Archivo"]'] {
+  font-family: var(--font-archivo), sans-serif !important;
+}
+
+.font-mono,
+.font-ibm-mono,
+[class*="font-['IBM_Plex_Mono']"],
+[class*='font-["IBM_Plex_Mono"]'],
+[class*="font-['IBM Plex Mono']"] {
+  font-family: var(--font-ibm-mono), monospace !important;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1EDE3;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #BDB5A2;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8A8272;
+}
