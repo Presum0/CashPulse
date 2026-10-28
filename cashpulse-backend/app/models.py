@@ -21,6 +21,9 @@ class ActionDraftStatus(str, Enum):
 # --- Organization Schema ---
 class OrganizationBase(SQLModel):
     name: str = Field(index=True)
+    currency: str = Field(default="USD")
+    monthly_burn: float = Field(default=0.0)
+    policy_floor: float = Field(default=0.0)
     current_cash_balance: float = Field(default=0.0)
 
 class Organization(OrganizationBase, table=True):

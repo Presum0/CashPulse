@@ -14,6 +14,21 @@ engine = create_engine(
 def create_db_and_tables():
     """Creates database tables based on SQLModel metadata on app startup."""
     SQLModel.metadata.create_all(engine)
+    # Ensure newly added columns exist in SQLite database if it was previously created
+    try:
+        with engine.begin() as conn:
+            existing_cols = [
+                row[1]
+                for row in conn.exec_driver_sql("PRAGMA table_info(organization)").fetchall()
+            ]
+            if "currency" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE organization ADD COLUMN currency VARCHAR DEFAULT 'USD'")
+            if "monthly_burn" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE organization ADD COLUMN monthly_burn FLOAT DEFAULT 0.0")
+            if "policy_floor" not in existing_cols:
+                conn.exec_driver_sql("ALTER TABLE organization ADD COLUMN policy_floor FLOAT DEFAULT 0.0")
+    except Exception as e:
+        print(f"Database schema migration notice: {e}")
 
 def get_session():
     """FastAPI dependency yielding database sessions per request."""

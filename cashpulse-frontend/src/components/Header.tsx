@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { formatFullDateString } from "@/lib/utils";
+import { OrganizationInfo } from "@/lib/types";
 
 interface HeaderProps {
   organizationId?: number;
   organizationName?: string;
+  organizations?: OrganizationInfo[];
   hasAcuteDeficit?: boolean;
   asOfDate?: string;
   isAnalyzing?: boolean;
@@ -16,6 +18,7 @@ interface HeaderProps {
 export function Header({
   organizationId = 2,
   organizationName = "Harbourline Logistics",
+  organizations = [],
   hasAcuteDeficit = true,
   asOfDate,
   isAnalyzing = false,
@@ -82,8 +85,25 @@ export function Header({
                 onChange={(e) => onSelectOrg(Number(e.target.value))}
                 className="bg-transparent text-[12.5px] font-semibold leading-none tracking-[-0.01em] outline-none cursor-pointer pr-4"
               >
-                <option value={2}>Doyle Ltd Logistics (Deficit Crunch)</option>
-                <option value={1}>Rodriguez Technologies (Surplus)</option>
+                {organizations && organizations.length > 0 ? (
+                  organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name} (#{org.id})
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value={2}>Doyle Ltd Logistics (Deficit Crunch)</option>
+                    <option value={1}>Rodriguez Technologies (Surplus)</option>
+                  </>
+                )}
+                {organizations &&
+                  organizations.length > 0 &&
+                  !organizations.some((o) => o.id === organizationId) && (
+                    <option value={organizationId}>
+                      {organizationName} (#{organizationId})
+                    </option>
+                  )}
               </select>
             ) : (
               <span className="text-[12.5px] font-semibold leading-none tracking-[-0.01em]">

@@ -8,8 +8,8 @@ interface ApprovalDrawerProps {
   draft: ActionDraft | null;
   isOpen: boolean;
   onClose: () => void;
-  onApprove: (actionId: number) => Promise<void>;
-  onReject: (actionId: number) => Promise<void>;
+  onApprove: (actionId: number, notes?: string) => Promise<void>;
+  onReject: (actionId: number, notes?: string) => Promise<void>;
 }
 
 export function ApprovalDrawer({
@@ -21,10 +21,12 @@ export function ApprovalDrawer({
 }: ApprovalDrawerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editableBody, setEditableBody] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (draft) {
       setEditableBody(draft.body || draft.draft_content || draft.description || "");
+      setErrorMessage(null);
     }
   }, [draft]);
 
@@ -44,7 +46,11 @@ export function ApprovalDrawer({
   const handleApproveClick = async () => {
     try {
       setIsSubmitting(true);
-      await onApprove(draft.id);
+      setErrorMessage(null);
+      await onApprove(draft.id, editableBody);
+    } catch (err: any) {
+      console.error("Approval error in drawer:", err);
+      setErrorMessage(err.message || "Failed to execute approval.");
     } finally {
       setIsSubmitting(false);
     }
@@ -53,7 +59,11 @@ export function ApprovalDrawer({
   const handleRejectClick = async () => {
     try {
       setIsSubmitting(true);
-      await onReject(draft.id);
+      setErrorMessage(null);
+      await onReject(draft.id, editableBody);
+    } catch (err: any) {
+      console.error("Rejection error in drawer:", err);
+      setErrorMessage(err.message || "Failed to submit rejection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -301,6 +311,22 @@ export function ApprovalDrawer({
             </p>
           </div>
         </div>
+
+        {/* Error message banner */}
+        {errorMessage && (
+          <div className="mx-[22px] mt-[8px] flex items-center justify-between border border-[#B23428] bg-[#FDF2F0] px-[12px] py-[8px] text-[#B23428] text-[11px]">
+            <div className="flex items-center gap-[6px]">
+              <span className="font-bold">⚠</span>
+              <span>{errorMessage}</span>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="font-['IBM_Plex_Mono'] text-[8px] uppercase underline ml-2"
+            >
+              dismiss
+            </button>
+          </div>
+        )}
 
         {/* Footer actions */}
         <div className="flex shrink-0 items-center justify-between px-[22px] pb-[16px] pt-[13px] border-t border-[#D6CEBC] mt-[10px]">

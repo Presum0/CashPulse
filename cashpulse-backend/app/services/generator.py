@@ -357,3 +357,28 @@ def seed_all(session: Session, seed_value: int = 42) -> Dict[str, Any]:
         "bank_transactions": total_transactions,
         "daily_snapshots": total_snapshots,
     }
+
+
+def seed_new_organization(
+    session: Session,
+    org: Organization,
+    is_stressed: bool = True,
+) -> Dict[str, Any]:
+    """
+    Populates starter ledger records (invoices, bank transactions, daily snapshots)
+    for a newly provisioned tenant organization so the dashboard and copilot have rich, live data.
+    """
+    fake = Faker()
+    today = date.today()
+
+    invoices = _generate_invoices(session, org, fake, is_stressed, today)
+    txs = _generate_bank_transactions(session, org, invoices, fake, is_stressed, today)
+    snaps = _generate_daily_snapshots(session, org, txs, today)
+
+    return {
+        "organization_id": org.id,
+        "invoices": len(invoices),
+        "transactions": len(txs),
+        "snapshots": len(snaps),
+    }
+

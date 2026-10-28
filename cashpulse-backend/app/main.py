@@ -6,9 +6,18 @@ from fastapi import FastAPI, Depends, Query, HTTPException, Path
 from sqlmodel import Session, select
 from app.database import create_db_and_tables, get_session
 from app import models  # Ensures SQLModel metadata is populated before create_db_and_tables()
-from app.services.generator import seed_all
+from app.services.generator import seed_all, seed_new_organization
 from app.services.forecast import generate_13_week_forecast
 from app.agent.graph import run_copilot_workflow
+
+
+class OrganizationCreate(BaseModel):
+    name: str = Field(..., description="Organization legal entity name")
+    currency: str = Field(default="USD", description="Currency symbol or ISO code (USD, EUR, GBP, INR)")
+    monthly_burn: float = Field(default=0.0, description="Monthly recurring cash burn")
+    policy_floor: float = Field(default=0.0, description="Minimum policy cash buffer floor")
+    starting_cash: Optional[float] = Field(default=None, description="Starting cash balance")
+    seed_demo_data: bool = Field(default=True, description="Whether to generate initial invoices and cash transactions")
 
 
 @asynccontextmanager
@@ -45,6 +54,68 @@ def seed_database(
     """Populate the database with synthetic demo data. Wipes existing data first."""
     result = seed_all(session=session, seed_value=seed)
     return result
+
+@app.post("/api/v1/organizations")
+def create_organization(
+    req: OrganizationCreate,
+    session: Session = Depends(get_session),
+):
+    """
+    Provision a new SME organization tenant record.
+    Persists organization into the database with initial settings,
+    seeds starter ledger data, and runs initial copilot workflow.
+    """
+    starting_balance = req.starting_cash if req.starting_cash is not None else 100000.0
+    new_org = models.Organization(
+        name=req.name,
+        currency=req.currency,
+        monthly_burn=req.monthly_burn,
+        policy_floor=req.policy_floor,
+        current_cash_balance=starting_balance,
+    )
+    session.add(new_org)
+    session.commit()
+    session.refresh(new_org)
+
+    if req.seed_demo_data:
+        try:
+            # Seed starter ledger invoices, transactions and daily snapshots
+            seed_new_organization(session=session, org=new_org, is_stressed=True)
+            # Run copilot to synthesize initial action drafts and risk evaluations
+            run_copilot_workflow(session=session, organization_id=new_org.id)
+        except Exception as e:
+            print(f"Notice: Initial data seeding for org #{new_org.id}: {e}")
+
+    session.refresh(new_org)
+
+    return {
+        "organization_id": new_org.id,
+        "name": new_org.name,
+        "currency": new_org.currency,
+        "monthly_burn": new_org.monthly_burn,
+        "policy_floor": new_org.policy_floor,
+        "current_cash_balance": new_org.current_cash_balance,
+        "status": "PROVISIONED",
+    }
+
+@app.get("/api/v1/organizations")
+def list_organizations(
+    session: Session = Depends(get_session),
+):
+    """List all provisioned organizations."""
+    statement = select(models.Organization).order_by(models.Organization.id.desc())
+    orgs = session.exec(statement).all()
+    return [
+        {
+            "id": o.id,
+            "name": o.name,
+            "currency": getattr(o, "currency", "USD") or "USD",
+            "current_cash_balance": o.current_cash_balance,
+            "monthly_burn": getattr(o, "monthly_burn", 0.0) or 0.0,
+            "policy_floor": getattr(o, "policy_floor", 0.0) or 0.0,
+        }
+        for o in orgs
+    ]
 
 @app.get("/api/v1/forecast/{organization_id}")
 def get_13_week_forecast(
@@ -121,7 +192,7 @@ def list_action_drafts(
 @app.post("/api/v1/copilot/actions/{action_id}/execute")
 def execute_action_draft(
     action_id: int = Path(..., description="The ID of the ActionDraft to execute/approve"),
-    req: ActionExecutionRequest = ActionExecutionRequest(),
+    req: Optional[ActionExecutionRequest] = None,
     session: Session = Depends(get_session),
 ):
     """
@@ -134,13 +205,28 @@ def execute_action_draft(
     if not draft:
         raise HTTPException(
             status_code=404,
-            detail=f"ActionDraft with ID {action_id} not found",
+            detail=f"ActionDraft with ID {action_id} not found in database.",
         )
 
-    decision = req.decision.upper()
+    if req is None:
+        req = ActionExecutionRequest()
+
+    decision = (req.decision or "APPROVE").upper()
     now_utc = datetime.now(timezone.utc)
 
     if decision == "APPROVE":
+        if draft.status == models.ActionDraftStatus.EXECUTED:
+            return {
+                "status": "EXECUTED",
+                "action_id": draft.id,
+                "action_type": draft.action_type,
+                "title": draft.title,
+                "executed_at": draft.executed_at.isoformat() if draft.executed_at else now_utc.isoformat(),
+                "notes": req.notes,
+                "ledger_impact": "Action was already approved and executed.",
+                "message": f"ActionDraft #{draft.id} is already executed.",
+            }
+
         draft.status = models.ActionDraftStatus.EXECUTED
         draft.executed_at = now_utc
 

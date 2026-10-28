@@ -100,3 +100,22 @@ export interface ActionExecutionResponse {
   ledger_impact?: string;
   message: string;
 }
+
+export interface CreateOrganizationPayload {
+  name: string;
+  currency: string;
+  monthly_burn: number;
+  policy_floor: number;
+  starting_cash?: number;
+  seed_demo_data?: boolean;
+}
+
+export interface OrganizationInfo {
+  id: number;
+  name: string;
+  currency: string;
+  current_cash_balance: number;
+  monthly_burn?: number;
+  policy_floor?: number;
+}
+

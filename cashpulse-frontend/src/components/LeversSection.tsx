@@ -150,7 +150,11 @@ export function LeversSection({
                   isFeatured ? "text-[#8E8878]" : "text-[#8A8272]"
                 }`}
               >
-                {lever.status === "EXECUTED" ? "✓ executed" : "awaiting signature"}
+                {lever.status === "EXECUTED"
+                  ? "✓ executed"
+                  : lever.status === "REJECTED"
+                  ? "✕ rejected"
+                  : "awaiting signature"}
               </p>
               <span
                 className={`text-[10.5px] font-medium leading-none ${
