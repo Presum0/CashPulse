@@ -33,6 +33,8 @@ class Organization(OrganizationBase, table=True):
     invoices: List["Invoice"] = Relationship(back_populates="organization")
     transactions: List["BankTransaction"] = Relationship(back_populates="organization")
     action_drafts: List["ActionDraft"] = Relationship(back_populates="organization")
+    plaid_items: List["PlaidItem"] = Relationship(back_populates="organization")
+    accounting_connections: List["AccountingConnection"] = Relationship(back_populates="organization")
 
 # --- Invoice Schema (Pending & Expected Cash Flows) ---
 class InvoiceBase(SQLModel):
@@ -93,4 +95,35 @@ class ActionDraft(ActionDraftBase, table=True):
     executed_at: Optional[datetime] = None
 
     organization: Optional[Organization] = Relationship(back_populates="action_drafts")
+
+# --- Plaid Integration Schema (Connected Commercial Bank Items) ---
+class PlaidItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    organization_id: int = Field(foreign_key="organization.id", index=True)
+    item_id: str = Field(index=True)
+    access_token: str
+    institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
+    accounts_count: int = Field(default=1)
+    status: str = Field(default="active")
+    last_synced_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    organization: Optional[Organization] = Relationship(back_populates="plaid_items")
+
+# --- Accounting & ERP Schema (Xero / QuickBooks Online Connections) ---
+class AccountingConnection(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    organization_id: int = Field(foreign_key="organization.id", index=True)
+    provider: str = Field(index=True)  # "xero", "quickbooks", "netsuite"
+    tenant_id: Optional[str] = None
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[datetime] = None
+    status: str = Field(default="connected")  # "connected", "expired", "disconnected"
+    last_synced_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    organization: Optional[Organization] = Relationship(back_populates="accounting_connections")
+
 

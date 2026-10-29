@@ -9,6 +9,7 @@ from app import models  # Ensures SQLModel metadata is populated before create_d
 from app.services.generator import seed_all, seed_new_organization
 from app.services.forecast import generate_13_week_forecast
 from app.agent.graph import run_copilot_workflow
+from app.services import plaid_service, accounting_service
 
 
 class OrganizationCreate(BaseModel):
@@ -281,6 +282,208 @@ def execute_action_draft(
             status_code=400,
             detail=f"Invalid decision '{req.decision}'. Accepted values are 'APPROVE' or 'REJECT'.",
         )
+
+
+# =====================================================================
+# PLAID FINANCIAL INGESTION API
+# =====================================================================
+
+class PlaidLinkTokenRequest(BaseModel):
+    organization_id: int = Field(..., description="Target tenant organization ID")
+    client_user_id: Optional[str] = None
+
+
+class PlaidExchangeTokenRequest(BaseModel):
+    public_token: str = Field(..., description="Plaid public token returned from Plaid Link widget")
+    organization_id: int = Field(..., description="Target tenant organization ID")
+    institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
+
+
+@app.post("/api/v1/plaid/create-link-token")
+async def create_plaid_link_token(
+    req: PlaidLinkTokenRequest,
+    session: Session = Depends(get_session),
+):
+    """
+    Creates a Plaid Link Token to initialize the Plaid Link flow in the frontend.
+    Supports both live sandbox credentials and simulated local sandbox tokens.
+    """
+    org = session.get(models.Organization, req.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail=f"Organization #{req.organization_id} not found")
+
+    res = await plaid_service.create_link_token(
+        organization_id=req.organization_id,
+        client_user_id=req.client_user_id,
+    )
+    return res
+
+
+@app.post("/api/v1/plaid/exchange-token")
+async def exchange_plaid_public_token(
+    req: PlaidExchangeTokenRequest,
+    session: Session = Depends(get_session),
+):
+    """
+    Exchanges public token for access token, persists PlaidItem in SQLModel,
+    and runs initial bank feeds and balance sync.
+    """
+    org = session.get(models.Organization, req.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail=f"Organization #{req.organization_id} not found")
+
+    res = await plaid_service.exchange_public_token(
+        session=session,
+        public_token=req.public_token,
+        organization_id=req.organization_id,
+        institution_id=req.institution_id,
+        institution_name=req.institution_name,
+    )
+    return res
+
+
+@app.post("/api/v1/plaid/sync/{organization_id}")
+async def sync_plaid_bank_data(
+    organization_id: int = Path(..., description="The organization ID to sync bank feeds for"),
+    session: Session = Depends(get_session),
+):
+    """
+    Triggers bank feed and live cash balance synchronization from Plaid
+    into CashPulse ledger tables (BankTransaction & DailyCashSnapshot).
+    """
+    org = session.get(models.Organization, organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail=f"Organization #{organization_id} not found")
+
+    summary = await plaid_service.sync_plaid_data(
+        session=session,
+        organization_id=organization_id,
+    )
+    return summary
+
+
+@app.get("/api/v1/plaid/items/{organization_id}")
+def list_connected_plaid_items(
+    organization_id: int = Path(..., description="The organization ID"),
+    session: Session = Depends(get_session),
+):
+    """Lists all active Plaid bank connections for an organization."""
+    items = session.exec(
+        select(models.PlaidItem).where(
+            models.PlaidItem.organization_id == organization_id,
+            models.PlaidItem.status == "active",
+        )
+    ).all()
+    return [
+        {
+            "id": item.id,
+            "institution_name": item.institution_name,
+            "institution_id": item.institution_id,
+            "status": item.status,
+            "accounts_count": item.accounts_count,
+            "last_synced_at": item.last_synced_at.isoformat() if item.last_synced_at else None,
+        }
+        for item in items
+    ]
+
+
+# =====================================================================
+# ACCOUNTING & ERP LEDGER INGESTION API (XERO / QUICKBOOKS ONLINE)
+# =====================================================================
+
+@app.get("/api/v1/integrations/accounting/connect/{provider}")
+def get_accounting_auth_url(
+    provider: str = Path(..., description="Provider name: 'xero' or 'quickbooks'"),
+    organization_id: int = Query(..., description="Target organization ID"),
+    session: Session = Depends(get_session),
+):
+    """
+    Generates OAuth2 authorization URL for connecting Xero or QuickBooks Online.
+    """
+    org = session.get(models.Organization, organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail=f"Organization #{organization_id} not found")
+
+    try:
+        return accounting_service.get_oauth_authorization_url(
+            provider=provider,
+            organization_id=organization_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/v1/integrations/accounting/callback/{provider}")
+async def handle_accounting_oauth_callback(
+    provider: str = Path(..., description="Provider name: 'xero' or 'quickbooks'"),
+    code: str = Query(..., description="OAuth2 authorization code"),
+    state: str = Query(..., description="OAuth2 state containing organization ID"),
+    realmId: Optional[str] = Query(default=None, description="QuickBooks Realm ID"),
+    session: Session = Depends(get_session),
+):
+    """
+    OAuth2 callback endpoint that exchanges authorization code for API tokens
+    and executes initial invoice/bills sync.
+    """
+    try:
+        res = await accounting_service.handle_oauth_callback(
+            session=session,
+            provider=provider,
+            code=code,
+            state=state,
+            realm_id=realmId,
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Accounting callback error: {str(e)}")
+
+
+@app.post("/api/v1/integrations/accounting/sync/{organization_id}")
+async def sync_accounting_ledger(
+    organization_id: int = Path(..., description="Organization ID"),
+    provider: str = Query(default="xero", description="Provider name: 'xero' or 'quickbooks'"),
+    session: Session = Depends(get_session),
+):
+    """
+    Syncs pending AR customer invoices and AP vendor bills from ERP
+    directly into CashPulse's deterministic 13-week forecast engine.
+    """
+    org = session.get(models.Organization, organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail=f"Organization #{organization_id} not found")
+
+    res = await accounting_service.sync_invoices_from_accounting(
+        session=session,
+        organization_id=organization_id,
+        provider=provider,
+    )
+    return res
+
+
+@app.get("/api/v1/integrations/accounting/connections/{organization_id}")
+def list_accounting_connections(
+    organization_id: int = Path(..., description="Organization ID"),
+    session: Session = Depends(get_session),
+):
+    """Lists all active ERP and accounting connections for an organization."""
+    conns = session.exec(
+        select(models.AccountingConnection).where(
+            models.AccountingConnection.organization_id == organization_id,
+            models.AccountingConnection.status == "connected",
+        )
+    ).all()
+    return [
+        {
+            "id": c.id,
+            "provider": c.provider,
+            "tenant_id": c.tenant_id,
+            "status": c.status,
+            "last_synced_at": c.last_synced_at.isoformat() if c.last_synced_at else None,
+        }
+        for c in conns
+    ]
+
 
 
 

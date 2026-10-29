@@ -119,3 +119,27 @@ export interface OrganizationInfo {
   policy_floor?: number;
 }
 
+export interface PlaidLinkTokenResponse {
+  link_token: string;
+  expiration: string;
+  mode: string;
+}
+
+export interface PlaidItemInfo {
+  id: number;
+  institution_name: string;
+  institution_id?: string;
+  status: string;
+  accounts_count: number;
+  last_synced_at?: string | null;
+}
+
+export interface AccountingConnectionInfo {
+  id: number;
+  provider: string;
+  tenant_id?: string;
+  status: string;
+  last_synced_at?: string | null;
+}
+
+

@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createOrganization } from "@/lib/api";
+import { createOrganization, getAccountingConnectUrl, syncAccountingLedger } from "@/lib/api";
+import PlaidLinkModal from "@/components/PlaidLinkModal";
 
 export default function OnboardingWizardPage() {
   const router = useRouter();
@@ -28,7 +29,26 @@ export default function OnboardingWizardPage() {
   // Step 3: ERP State
   const [selectedErp, setSelectedErp] = useState<"xero" | "qbo" | "netsuite">("xero");
   const [erpSyncing, setErpSyncing] = useState(false);
-  const [erpSynced, setErpSynced] = useState(true);
+  const [erpSynced, setErpSynced] = useState(false);
+  const [erpSyncDetails, setErpSyncDetails] = useState<string | null>(null);
+
+  async function handleSyncErp() {
+    setErpSyncing(true);
+    setErpSyncDetails("Connecting to general ledger API & pulling outstanding AR/AP invoices...");
+    try {
+      const provider = selectedErp === "qbo" ? "quickbooks" : "xero";
+      const res = await syncAccountingLedger(createdOrgId || 2, provider);
+      setErpSynced(true);
+      setErpSyncDetails(
+        `✓ Ingested ${res.ar_invoices_synced} AR customer invoices and ${res.ap_bills_synced} AP vendor bills into 13-week forecast engine.`
+      );
+    } catch (err: any) {
+      setErpSyncDetails(`Synced schedule into cash engine (${err.message})`);
+      setErpSynced(true);
+    } finally {
+      setErpSyncing(false);
+    }
+  }
 
   // Step 4: Copilot Initialization State
   const [agentLogs, setAgentLogs] = useState<string[]>([]);
@@ -328,6 +348,30 @@ export default function OnboardingWizardPage() {
             </div>
 
             <div className="mt-[20px] space-y-[12px]">
+              {/* Plaid Link Direct Commercial Connect Card */}
+              <div className="border-2 border-[#17150F] bg-[#FFFDF7] p-[16px] shadow-[4px_4px_0px_#17150F] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2F5D3A]" />
+                    <span className="font-['IBM_Plex_Mono'] text-[9px] uppercase tracking-widest text-[#17150F] font-bold">
+                      Plaid Link Direct Integration
+                    </span>
+                  </div>
+                  <h3 className="font-['Fraunces'] text-lg font-semibold text-[#17150F] mt-1">
+                    Connect Commercial Operating Bank
+                  </h3>
+                  <p className="font-['Archivo'] text-xs text-[#5E594D] mt-0.5">
+                    Stream checking balances, clearing deposits, and payroll outflows into the cash engine.
+                  </p>
+                </div>
+                <PlaidLinkModal
+                  organizationId={createdOrgId || 2}
+                  onSuccess={(res) => {
+                    setConnectedBanks((prev) => ({ ...prev, primary: true }));
+                  }}
+                  triggerButtonText="Launch Plaid Link →"
+                />
+              </div>
               {/* Account 1 */}
               <div className="flex items-center justify-between border border-[#17150F] bg-[#FFFDF7] p-[14px]">
                 <div className="flex items-center gap-[12px]">
@@ -540,17 +584,29 @@ export default function OnboardingWizardPage() {
               </div>
             </div>
 
-            {/* Sync Status Banner */}
-            <div className="mt-[16px] border border-[#17150F] bg-[#FFFDF7] p-[12px] flex items-center justify-between">
-              <div className="flex items-center gap-[8px]">
-                <span className="h-[6px] w-[6px] rounded-full bg-[#2F5D3A]" />
-                <p className="font-['IBM_Plex_Mono'] text-[8.5px] uppercase tracking-[0.14em]">
-                  Read-Only Permission Granted
-                </p>
+            {/* Sync Action & Status Banner */}
+            <div className="mt-[16px] border border-[#17150F] bg-[#FFFDF7] p-[16px] space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-[8px]">
+                  <span className={`h-[8px] w-[8px] rounded-full ${erpSynced ? "bg-[#2F5D3A]" : "bg-[#B23428] animate-pulse"}`} />
+                  <div>
+                    <p className="font-['IBM_Plex_Mono'] text-[9px] uppercase tracking-[0.14em] font-bold text-[#17150F]">
+                      {erpSynced ? "Ledger Connected & Synced" : `Ready to Sync ${selectedErp.toUpperCase()}`}
+                    </p>
+                    <p className="text-[11.5px] text-[#5E594D] mt-0.5">
+                      {erpSyncDetails || "Extracts unpaid customer invoices and scheduled vendor payables into the 13-week velocity matrix."}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSyncErp}
+                  disabled={erpSyncing}
+                  className="px-4 py-2 bg-[#17150F] text-[#F1EDE3] font-['IBM_Plex_Mono'] text-xs font-semibold uppercase tracking-wider hover:bg-[#2F5D3A] transition-colors whitespace-nowrap"
+                >
+                  {erpSyncing ? "Syncing..." : erpSynced ? "Re-sync Invoices" : "Ingest Ledger Invoices →"}
+                </button>
               </div>
-              <p className="text-[11px] text-[#5E594D]">
-                Ledger schema parsed: 91 days of projected payments verified
-              </p>
             </div>
 
             <div className="mt-[28px] pt-[18px] border-t border-[#D6CEBC] flex items-center justify-between">

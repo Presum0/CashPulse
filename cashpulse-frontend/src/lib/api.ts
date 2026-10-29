@@ -220,3 +220,110 @@ export async function seedDatabase(seed: number = 42): Promise<any> {
   }
   return res.json();
 }
+
+// =====================================================================
+// PLAID INTEGRATION CLIENT
+// =====================================================================
+
+export async function createPlaidLinkToken(
+  organizationId: number
+): Promise<{ link_token: string; expiration: string; mode: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/plaid/create-link-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ organization_id: organizationId }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create Plaid link token: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function exchangePlaidPublicToken(payload: {
+  public_token: string;
+  organization_id: number;
+  institution_id?: string;
+  institution_name?: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/plaid/exchange-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to exchange Plaid token: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function syncPlaidBankFeeds(organizationId: number): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/plaid/sync/${organizationId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to sync Plaid bank data: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function getPlaidItems(organizationId: number): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/plaid/items/${organizationId}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+// =====================================================================
+// ACCOUNTING (XERO / QUICKBOOKS) INTEGRATION CLIENT
+// =====================================================================
+
+export async function getAccountingConnectUrl(
+  provider: "xero" | "quickbooks",
+  organizationId: number
+): Promise<{ provider: string; auth_url: string; mode: string }> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/integrations/accounting/connect/${provider}?organization_id=${organizationId}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to get accounting connect URL: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function syncAccountingLedger(
+  organizationId: number,
+  provider: "xero" | "quickbooks" = "xero"
+): Promise<any> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/integrations/accounting/sync/${organizationId}?provider=${provider}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to sync accounting ledger: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function getAccountingConnections(organizationId: number): Promise<any[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/integrations/accounting/connections/${organizationId}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
