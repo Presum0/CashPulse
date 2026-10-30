@@ -28,11 +28,9 @@ function CashPulseDashboardContent() {
   const router = useRouter();
 
   const orgIdParam = searchParams.get("orgId");
-  const initialOrgId = orgIdParam ? parseInt(orgIdParam, 10) : 2;
+  const parsedOrgId = orgIdParam ? parseInt(orgIdParam, 10) : NaN;
+  const organizationId = !isNaN(parsedOrgId) ? parsedOrgId : 2;
 
-  const [organizationId, setOrganizationId] = useState<number>(
-    !isNaN(initialOrgId) ? initialOrgId : 2
-  );
   const [organizations, setOrganizations] = useState<OrganizationInfo[]>([]);
 
   const [forecastData, setForecastData] = useState<ForecastResponse | null>(null);
@@ -40,19 +38,8 @@ function CashPulseDashboardContent() {
   const [copilotData, setCopilotData] = useState<CopilotAnalysisResponse | null>(null);
   const [selectedDraft, setSelectedDraft] = useState<ActionDraft | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
-
-  // Sync state if URL query param changes
-  useEffect(() => {
-    if (orgIdParam) {
-      const parsed = parseInt(orgIdParam, 10);
-      if (!isNaN(parsed) && parsed !== organizationId) {
-        setOrganizationId(parsed);
-      }
-    }
-  }, [orgIdParam, organizationId]);
 
   // Load organizations for header switcher
   useEffect(() => {
@@ -88,13 +75,19 @@ function CashPulseDashboardContent() {
     } catch (err) {
       console.warn("Backend notice: Using cached data for display.", err);
     } finally {
-      setIsLoading(false);
       setIsAnalyzing(false);
     }
   }, [organizationId]);
 
   useEffect(() => {
+    let active = true;
+    if (active) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
+    }
+    return () => {
+      active = false;
+    };
   }, [loadData]);
 
   const handleSelectAction = (draft: ActionDraft) => {
@@ -135,7 +128,7 @@ function CashPulseDashboardContent() {
       }
 
       setTimeout(() => setExecutionMessage(null), 6000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to approve action:", err);
       // Update local state gracefully if offline or mock
       setActionDrafts((prev) =>
@@ -163,7 +156,7 @@ function CashPulseDashboardContent() {
           prev && prev.id === actionId ? { ...prev, status: "REJECTED" } : prev
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to reject action:", err);
       // Update local state gracefully if offline or mock
       setActionDrafts((prev) =>

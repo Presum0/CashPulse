@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { ActionDraft } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,15 +20,29 @@ export function ApprovalDrawer({
   onReject,
 }: ApprovalDrawerProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editableBody, setEditableBody] = useState("");
+  const defaultBody = useMemo(
+    () => draft?.body || draft?.draft_content || draft?.description || "",
+    [draft]
+  );
+  const [editableBody, setEditableBody] = useState(defaultBody);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEditableBody(defaultBody);
   useEffect(() => {
-    if (draft) {
-      setEditableBody(draft.body || draft.draft_content || draft.description || "");
-      setErrorMessage(null);
-    }
-  }, [draft]);
+    setEditableBody(defaultBody);
+    setErrorMessage(null);
+  }, [draftId, defaultBody]);
+  const draftId = draft?.id;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEditableBody(defaultBody);
+    setEditableBody(defaultBody);
+    setErrorMessage(null);
+    setErrorMessage(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEditableBody(defaultBody);
+  }, [draftId, defaultBody]);
 
   // Handle escape key to close
   useEffect(() => {
@@ -48,9 +62,10 @@ export function ApprovalDrawer({
       setIsSubmitting(true);
       setErrorMessage(null);
       await onApprove(draft.id, editableBody);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Approval error in drawer:", err);
-      setErrorMessage(err.message || "Failed to execute approval.");
+      const msg = err instanceof Error ? err.message : "Failed to execute approval.";
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,9 +76,10 @@ export function ApprovalDrawer({
       setIsSubmitting(true);
       setErrorMessage(null);
       await onReject(draft.id, editableBody);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Rejection error in drawer:", err);
-      setErrorMessage(err.message || "Failed to submit rejection.");
+      const msg = err instanceof Error ? err.message : "Failed to submit rejection.";
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }

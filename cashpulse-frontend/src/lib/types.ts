@@ -142,4 +142,31 @@ export interface AccountingConnectionInfo {
   last_synced_at?: string | null;
 }
 
+export interface PlaidExchangeResponse {
+  status: string;
+  plaid_item_id: number;
+  item_id: string;
+  institution_name: string;
+  sync_summary: Record<string, unknown>;
+}
+
+export interface PlaidSyncResponse {
+  status: string;
+  organization_id: number;
+  synced_transactions: number;
+  current_cash_balance: number;
+  synced_at: string;
+}
+
+export interface AccountingSyncResponse {
+  status: string;
+  provider: string;
+  organization_id: number;
+  ar_invoices_synced: number;
+  ap_bills_synced: number;
+  total_invoices_synced: number;
+  synced_at: string;
+}
+
+
 

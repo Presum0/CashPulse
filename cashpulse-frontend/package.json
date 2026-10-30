@@ -1,30 +1,30 @@
 {
-  "name": "cashpulse-frontend",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.61.0",
-    "next": "16.4.3",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "recharts": "^3.10.1",
-    "tailwind-merge": "^3.7.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+"dev": "next dev --port 3002 --webpack""name": "cashpulse-frontend",
+"dev": "next dev --port 3002 --webpack""version": "0.1.0",
+"dev": "next dev --port 3002 --webpack""private": true,
+"dev": "next dev --port 3002 --webpack""scripts": {
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""dev": "next dev --webpack",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""build": "next build",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""start": "next start",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""lint": "eslint"
+"dev": "next dev --port 3002 --webpack"},
+"dev": "next dev --port 3002 --webpack""dependencies": {
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""clsx": "^2.1.1",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""lucide-react": "^1.61.0",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""next": "16.4.3",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""react": "19.3.0",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""react-dom": "19.3.0",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""recharts": "^3.10.1",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""tailwind-merge": "^3.7.0"
+"dev": "next dev --port 3002 --webpack"},
+"dev": "next dev --port 3002 --webpack""devDependencies": {
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""@tailwindcss/turbopack": "^4",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""@types/node": "^20",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""@types/react": "^19",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""@types/react-dom": "^19",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""eslint": "^9",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""eslint-config-next": "16.4.3",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""tailwindcss": "^4",
+"dev": "next dev --port 3002 --webpack""dev": "next dev --port 3002 --webpack""typescript": "^5"
+"dev": "next dev --port 3002 --webpack"}
 }

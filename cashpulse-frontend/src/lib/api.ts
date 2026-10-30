@@ -7,6 +7,11 @@ import {
   ActionExecutionResponse,
   CreateOrganizationPayload,
   OrganizationInfo,
+  PlaidItemInfo,
+  AccountingConnectionInfo,
+  PlaidExchangeResponse,
+  PlaidSyncResponse,
+  AccountingSyncResponse,
 } from "./types";
 
 const API_BASE_URL =
@@ -98,8 +103,21 @@ export async function getForecast(
     policy_floor: sMetrics.policy_floor ?? 50000,
   };
 
-  const rawDaily = data.daily_forecast || data.daily_projections || [];
-  const daily_projections: DailyForecast[] = rawDaily.map((d: any) => {
+  interface RawDaily {
+    closing_balance?: number;
+    projected_balance?: number;
+    date: string;
+    day_index?: number;
+    day_offset?: number;
+    total_inflow?: number;
+    expected_inflow?: number;
+    total_outflow?: number;
+    expected_outflow?: number;
+    breakdown?: Record<string, number>;
+  }
+
+  const rawDaily: RawDaily[] = data.daily_forecast || data.daily_projections || [];
+  const daily_projections: DailyForecast[] = rawDaily.map((d: RawDaily) => {
     const balance = d.closing_balance ?? d.projected_balance ?? 0;
     const isDeficit = balance < 0;
     return {
@@ -211,7 +229,7 @@ export async function executeActionDraft(
   return res.json();
 }
 
-export async function seedDatabase(seed: number = 42): Promise<any> {
+export async function seedDatabase(seed: number = 42): Promise<Record<string, unknown>> {
   const res = await fetch(`${API_BASE_URL}/seed?seed=${seed}`, {
     method: "POST",
   });
@@ -244,7 +262,7 @@ export async function exchangePlaidPublicToken(payload: {
   organization_id: number;
   institution_id?: string;
   institution_name?: string;
-}): Promise<any> {
+}): Promise<PlaidExchangeResponse> {
   const res = await fetch(`${API_BASE_URL}/api/v1/plaid/exchange-token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -256,7 +274,7 @@ export async function exchangePlaidPublicToken(payload: {
   return res.json();
 }
 
-export async function syncPlaidBankFeeds(organizationId: number): Promise<any> {
+export async function syncPlaidBankFeeds(organizationId: number): Promise<PlaidSyncResponse> {
   const res = await fetch(`${API_BASE_URL}/api/v1/plaid/sync/${organizationId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -267,7 +285,7 @@ export async function syncPlaidBankFeeds(organizationId: number): Promise<any> {
   return res.json();
 }
 
-export async function getPlaidItems(organizationId: number): Promise<any[]> {
+export async function getPlaidItems(organizationId: number): Promise<PlaidItemInfo[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/v1/plaid/items/${organizationId}`, {
       cache: "no-store",
@@ -300,7 +318,7 @@ export async function getAccountingConnectUrl(
 export async function syncAccountingLedger(
   organizationId: number,
   provider: "xero" | "quickbooks" = "xero"
-): Promise<any> {
+): Promise<AccountingSyncResponse> {
   const res = await fetch(
     `${API_BASE_URL}/api/v1/integrations/accounting/sync/${organizationId}?provider=${provider}`,
     {
@@ -314,7 +332,7 @@ export async function syncAccountingLedger(
   return res.json();
 }
 
-export async function getAccountingConnections(organizationId: number): Promise<any[]> {
+export async function getAccountingConnections(organizationId: number): Promise<AccountingConnectionInfo[]> {
   try {
     const res = await fetch(
       `${API_BASE_URL}/api/v1/integrations/accounting/connections/${organizationId}`,

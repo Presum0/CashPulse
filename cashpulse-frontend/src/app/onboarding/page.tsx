@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createOrganization, getAccountingConnectUrl, syncAccountingLedger } from "@/lib/api";
+import { createOrganization, syncAccountingLedger } from "@/lib/api";
 import PlaidLinkModal from "@/components/PlaidLinkModal";
 
 export default function OnboardingWizardPage() {
@@ -13,7 +13,18 @@ export default function OnboardingWizardPage() {
   const [isProvisioning, setIsProvisioning] = useState(false);
 
   // Step 1: Profile State
-  const [companyName, setCompanyName] = useState("Harbourline Logistics");
+  const [companyName, setCompanyName] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cashpulse_onboarding_org");
+      try {
+        const parsed = JSON.parse(saved || "{}");
+        return parsed.companyName || "Harbourline Logistics";
+      } catch {
+        return "Harbourline Logistics";
+      }
+    }
+    return "Harbourline Logistics";
+  });
   const [currency, setCurrency] = useState<"USD" | "EUR" | "GBP" | "INR">("USD");
   const [startingCash, setStartingCash] = useState<number>(482400);
   const [monthlyBurn, setMonthlyBurn] = useState<number>(74300);
@@ -42,8 +53,9 @@ export default function OnboardingWizardPage() {
       setErpSyncDetails(
         `✓ Ingested ${res.ar_invoices_synced} AR customer invoices and ${res.ap_bills_synced} AP vendor bills into 13-week forecast engine.`
       );
-    } catch (err: any) {
-      setErpSyncDetails(`Synced schedule into cash engine (${err.message})`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Sync failed";
+      setErpSyncDetails(`Synced schedule into cash engine (${msg})`);
       setErpSynced(true);
     } finally {
       setErpSyncing(false);
@@ -54,24 +66,15 @@ export default function OnboardingWizardPage() {
   const [agentLogs, setAgentLogs] = useState<string[]>([]);
   const [agentProgress, setAgentProgress] = useState(0);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cashpulse_onboarding_org");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.companyName) setCompanyName(parsed.companyName);
-        } catch {}
-      }
-    }
-  }, []);
-
   // Step 4: Real backend provisioning & copilot execution
   useEffect(() => {
     if (step === 4) {
       let isCancelled = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsProvisioning(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAgentLogs(["[INIT] Connecting to FastAPI backend & LangGraph Workflow..."]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAgentProgress(10);
 
       // Perform real backend organization provisioning
@@ -254,7 +257,7 @@ export default function OnboardingWizardPage() {
                   </label>
                   <select
                     value={currency}
-                    onChange={(e: any) => setCurrency(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCurrency(e.target.value as "USD" | "EUR" | "GBP" | "INR")}
                     className="w-full border border-[#17150F] bg-[#FFFDF7] px-[12px] py-[9px] text-[13px] outline-none cursor-pointer"
                   >
                     <option value="USD">USD ($) — United States Dollar</option>
@@ -366,7 +369,7 @@ export default function OnboardingWizardPage() {
                 </div>
                 <PlaidLinkModal
                   organizationId={createdOrgId || 2}
-                  onSuccess={(res) => {
+                  onSuccess={() => {
                     setConnectedBanks((prev) => ({ ...prev, primary: true }));
                   }}
                   triggerButtonText="Launch Plaid Link →"

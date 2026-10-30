@@ -1,17 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Script from "next/script";
 import { createPlaidLinkToken, exchangePlaidPublicToken } from "@/lib/api";
+import { PlaidExchangeResponse } from "@/lib/types";
+
+interface PlaidMetadata {
+  institution?: {
+    institution_id?: string;
+    name?: string;
+  };
+}
 
 declare global {
   interface Window {
     Plaid?: {
       create: (config: {
         token: string;
-        onSuccess: (public_token: string, metadata: any) => void;
-        onExit?: (err: any, metadata: any) => void;
-        onEvent?: (eventName: string, metadata: any) => void;
+        onSuccess: (public_token: string, metadata: PlaidMetadata) => void;
+        onExit?: (err: unknown, metadata: PlaidMetadata) => void;
+        onEvent?: (eventName: string, metadata: PlaidMetadata) => void;
       }) => {
         open: () => void;
         exit: () => void;
@@ -23,7 +31,7 @@ declare global {
 
 interface PlaidLinkModalProps {
   organizationId: number;
-  onSuccess: (result: any) => void;
+  onSuccess: (result: PlaidExchangeResponse) => void;
   triggerButtonText?: string;
   className?: string;
 }
@@ -67,11 +75,12 @@ export default function PlaidLinkModal({
               });
               onSuccess(res);
               setIsOpen(false);
-            } catch (err: any) {
-              setStatusMessage(`Exchange failed: ${err.message}`);
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : String(err);
+              setStatusMessage(`Exchange failed: ${msg}`);
             }
           },
-          onExit: (err, metadata) => {
+          onExit: () => {
             setLoading(false);
             setStatusMessage("");
           },
@@ -83,7 +92,7 @@ export default function PlaidLinkModal({
         setIsOpen(true);
         setLoading(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn("Plaid token request notice, falling back to Sandbox UI:", err);
       setIsOpen(true);
       setLoading(false);
@@ -107,9 +116,10 @@ export default function PlaidLinkModal({
         setIsOpen(false);
         onSuccess(res);
       }, 700);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
-      setStatusMessage(`Error linking bank: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Error linking bank: ${msg}`);
     }
   }
 

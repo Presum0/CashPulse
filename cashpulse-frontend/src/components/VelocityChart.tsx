@@ -14,6 +14,69 @@ import {
 import { DailyForecast, ForecastSummary } from "@/lib/types";
 import { formatCurrency, formatDateString } from "@/lib/utils";
 
+interface WeeklyPoint {
+  date: string;
+  label: string;
+  balance: number;
+  actual: number | null;
+  forecast: number | null;
+  inflow: number;
+  outflow: number;
+  isDeficit: boolean;
+  isLowWaterMark?: boolean;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: WeeklyPoint }>;
+  label?: string;
+}
+
+function ChartTooltip({ active, payload }: ChartTooltipProps) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="border border-[#17150F] bg-[#F6F2E8] p-[10px] shadow-sm font-['IBM_Plex_Mono'] text-[11px] min-w-[190px]">
+        <div className="flex items-center justify-between border-b border-[#D6CEBC] pb-[5px] mb-[6px]">
+          <span className="font-semibold uppercase tracking-[0.1em] text-[#17150F]">
+            {data.label}
+          </span>
+          {data.balance < 0 ? (
+            <span className="bg-[#B23428] text-[#F6F2E8] px-[4px] py-[1px] text-[8.5px] font-bold">
+              DEFICIT
+            </span>
+          ) : (
+            <span className="text-[#2F5D3A] text-[9px]">SOLVENT</span>
+          )}
+        </div>
+        <div className="flex justify-between items-center text-[12px] my-[2px]">
+          <span className="text-[#7A7364]">Balance:</span>
+          <span
+            className={`font-semibold ${
+              data.balance < 0 ? "text-[#B23428]" : "text-[#17150F]"
+            }`}
+          >
+            {formatCurrency(data.balance)}
+          </span>
+        </div>
+        {data.inflow > 0 && (
+          <div className="flex justify-between items-center text-[10px] text-[#2F5D3A] mt-[4px]">
+            <span>Inflow:</span>
+            <span>+{formatCurrency(data.inflow)}</span>
+          </div>
+        )}
+        {data.outflow > 0 && (
+          <div className="flex justify-between items-center text-[10px] text-[#B23428] mt-[2px]">
+            <span>Outflow:</span>
+            <span>−{formatCurrency(data.outflow)}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+}
+
 interface VelocityChartProps {
   projections?: DailyForecast[];
   summary?: ForecastSummary | null;
@@ -23,6 +86,7 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 
@@ -49,7 +113,7 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
     }
 
     // Pick 13 weekly points from the 91-day projections
-    const weeklyPoints: any[] = [];
+    const weeklyPoints: WeeklyPoint[] = [];
     for (let i = 0; i < projections.length; i += 7) {
       const p = projections[i];
       const isPastOrToday = p.day_offset <= 0;
@@ -88,52 +152,6 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
   const minBalance = summary?.min_cash_balance ?? -38600;
   const minDate = summary?.min_cash_date ? formatDateString(summary.min_cash_date) : "28 Mar";
   const policyFloor = summary?.policy_floor ?? 120000;
-
-  // Custom Recharts Tooltip matching Bulletin console aesthetic
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="border border-[#17150F] bg-[#F6F2E8] p-[10px] shadow-sm font-['IBM_Plex_Mono'] text-[11px] min-w-[190px]">
-          <div className="flex items-center justify-between border-b border-[#D6CEBC] pb-[5px] mb-[6px]">
-            <span className="font-semibold uppercase tracking-[0.1em] text-[#17150F]">
-              {data.label}
-            </span>
-            {data.balance < 0 ? (
-              <span className="bg-[#B23428] text-[#F6F2E8] px-[4px] py-[1px] text-[8.5px] font-bold">
-                DEFICIT
-              </span>
-            ) : (
-              <span className="text-[#2F5D3A] text-[9px]">SOLVENT</span>
-            )}
-          </div>
-          <div className="flex justify-between items-center text-[12px] my-[2px]">
-            <span className="text-[#7A7364]">Balance:</span>
-            <span
-              className={`font-semibold ${
-                data.balance < 0 ? "text-[#B23428]" : "text-[#17150F]"
-              }`}
-            >
-              {formatCurrency(data.balance)}
-            </span>
-          </div>
-          {data.inflow > 0 && (
-            <div className="flex justify-between items-center text-[10px] text-[#2F5D3A] mt-[4px]">
-              <span>Inflow:</span>
-              <span>+{formatCurrency(data.inflow)}</span>
-            </div>
-          )}
-          {data.outflow > 0 && (
-            <div className="flex justify-between items-center text-[10px] text-[#B23428] mt-[2px]">
-              <span>Outflow:</span>
-              <span>−{formatCurrency(data.outflow)}</span>
-            </div>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <figure className="mt-[13px] flex flex-1 flex-col border border-[#17150F] bg-[#F6F2E8] px-[14px] pb-[9px] pt-[10px]">
@@ -203,7 +221,7 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
                 }}
               />
 
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip />} />
 
               {/* Zero Line */}
               <ReferenceLine

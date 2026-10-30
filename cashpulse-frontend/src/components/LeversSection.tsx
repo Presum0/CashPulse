@@ -12,7 +12,6 @@ interface LeversSectionProps {
 
 export function LeversSection({
   actionDrafts,
-  recommendedActions = [],
   onSelectAction,
 }: LeversSectionProps) {
   // If we have action drafts from backend or fallback to initial cards
