@@ -72,9 +72,7 @@ export default function OnboardingWizardPage() {
       let isCancelled = false;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsProvisioning(true);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAgentLogs(["[INIT] Connecting to FastAPI backend & LangGraph Workflow..."]);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAgentProgress(10);
 
       // Perform real backend organization provisioning

@@ -203,14 +203,17 @@ function CashPulseDashboardContent() {
         {/* 1. Masthead */}
         <Header
           organizationId={organizationId}
-          organizationName={forecastData?.organization_name || "Harbourline Logistics"}
+          organizationName={
+            forecastData?.organization_name ||
+            organizations.find((o) => o.id === organizationId)?.name ||
+            (organizationId === 1 ? "Rodriguez Technologies" : "Doyle Ltd Logistics")
+          }
           organizations={organizations}
           hasAcuteDeficit={summary?.has_acute_deficit ?? true}
           asOfDate={summary?.as_of_date}
           isAnalyzing={isAnalyzing}
           onRefresh={loadData}
           onSelectOrg={(id) => {
-            setOrganizationId(id);
             router.replace(`/dashboard?orgId=${id}`);
           }}
         />

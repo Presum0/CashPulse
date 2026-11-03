@@ -248,6 +248,16 @@ def execute_action_draft(
                 session.add(inv)
 
             ledger_impact_notes = f"Extended payment dates by +30 days on {len(ap_invoices)} upcoming vendor bills."
+        elif draft.action_type in ["INVOICE_FACTORING", "AR_FACTORING"]:
+            ledger_impact_notes = f"Authorized AR factoring advance. Unlocked ${draft.estimated_impact:,.2f} into immediate liquidity."
+        elif draft.action_type in ["CREDIT_LINE", "CREDIT_LINE_DRAW"]:
+            ledger_impact_notes = f"Submitted credit facility application for ${draft.estimated_impact:,.2f} to commercial credit desk."
+        elif draft.action_type == "TREASURY_OPTIMIZATION":
+            ledger_impact_notes = f"Activated automated overnight yield sweep for balances above $100k."
+        elif draft.action_type == "EARLY_PAYMENT_DISCOUNT":
+            ledger_impact_notes = f"Dispatched early payment discount terms (2/10 Net 30). Estimated savings: ${draft.estimated_impact:,.2f}."
+        else:
+            ledger_impact_notes = f"Action #{draft.id} ({draft.title}) approved and executed on ledger."
 
         session.add(draft)
         session.commit()

@@ -29,12 +29,14 @@ export function Header({
     ? formatFullDateString(asOfDate)
     : "Fri 14 Feb 2025 · 08:12 GMT";
 
-  const orgInitials = organizationName
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const orgInitials =
+    (organizationName || "HL")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "HL";
 
   return (
     <header className="relative flex shrink-0 items-center justify-between border-b-[2px] border-[#17150F] pb-[9px]">

@@ -27,21 +27,11 @@ export function ApprovalDrawer({
   const [editableBody, setEditableBody] = useState(defaultBody);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEditableBody(defaultBody);
-  useEffect(() => {
-    setEditableBody(defaultBody);
-    setErrorMessage(null);
-  }, [draftId, defaultBody]);
   const draftId = draft?.id;
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditableBody(defaultBody);
-    setEditableBody(defaultBody);
     setErrorMessage(null);
-    setErrorMessage(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEditableBody(defaultBody);
   }, [draftId, defaultBody]);
 
   // Handle escape key to close
@@ -88,8 +78,12 @@ export function ApprovalDrawer({
   const actionCategory =
     draft.action_type === "EXTEND_AP_TERMS"
       ? "vendor terms"
-      : draft.action_type === "CREDIT_LINE_DRAW"
+      : draft.action_type === "CREDIT_LINE_DRAW" || draft.action_type === "CREDIT_LINE"
       ? "credit line draw"
+      : draft.action_type === "TREASURY_OPTIMIZATION"
+      ? "yield sweep"
+      : draft.action_type === "EARLY_PAYMENT_DISCOUNT"
+      ? "prompt discount"
       : "ar acceleration";
 
   const isExecuted = draft.status === "EXECUTED";
@@ -156,7 +150,7 @@ export function ApprovalDrawer({
               {formatCurrency(draft.cash_impact ?? draft.estimated_impact ?? 0, true)}
             </p>
             <p className="mt-[6px] font-['IBM_Plex_Mono'] text-[7.5px] uppercase leading-none tracking-[0.1em] text-[#8A8272]">
-              in {draft.time_to_impact_days} days
+              in {draft.time_to_impact_days || 2} days
             </p>
           </div>
           <div className="border-r border-[#D6CEBC] px-[16px] py-[11px]">

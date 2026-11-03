@@ -22,15 +22,15 @@ export default function LoginPage() {
     }, 600);
   };
 
-  const handleDemoLogin = (demoEmail: string) => {
+  const handleDemoLogin = (demoEmail: string, orgId: number = 2) => {
     setEmail(demoEmail);
     setPassword("••••••••••••");
     setIsLoading(true);
     setTimeout(() => {
       if (typeof window !== "undefined") {
-        localStorage.setItem("cashpulse_user", JSON.stringify({ email: demoEmail, role: "CFO" }));
+        localStorage.setItem("cashpulse_user", JSON.stringify({ email: demoEmail, role: "CFO", organizationId: orgId }));
       }
-      router.push("/dashboard");
+      router.push(`/dashboard?orgId=${orgId}`);
     }, 500);
   };
 
@@ -82,14 +82,14 @@ export default function LoginPage() {
           <div className="flex gap-[6px]">
             <button
               type="button"
-              onClick={() => handleDemoLogin("cfo@harbourline.co")}
+              onClick={() => handleDemoLogin("cfo@harbourline.co", 2)}
               className="flex-1 border border-[#17150F] bg-[#FFFDF7] py-[5px] text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-[0.1em] hover:bg-[#17150F] hover:text-[#F6F2E8] transition-colors"
             >
               Doyle Ltd (Deficit)
             </button>
             <button
               type="button"
-              onClick={() => handleDemoLogin("treasury@rodriguez.tech")}
+              onClick={() => handleDemoLogin("treasury@rodriguez.tech", 1)}
               className="flex-1 border border-[#BDB5A2] bg-[#FFFDF7] py-[5px] text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-[0.1em] hover:bg-[#17150F] hover:text-[#F6F2E8] transition-colors text-[#57534A]"
             >
               Rodriguez (Surplus)

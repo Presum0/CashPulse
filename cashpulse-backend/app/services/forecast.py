@@ -271,6 +271,7 @@ def generate_13_week_forecast(
             "runway_days": runway_day_index,
             "is_at_risk": bool(min_balance < 0),
             "estimated_monthly_burn": round(sum(opex_rates.values()), 2),
+            "policy_floor": round(org.policy_floor, 2),
         },
         "daily_forecast": daily_forecasts,
         "weekly_summary": weekly_summaries,

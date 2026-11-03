@@ -132,7 +132,10 @@ export function CopilotBriefing({
         {risksToDisplay.map((risk, index) => {
           const isHigh = risk.severity === "HIGH";
           const isLast = index === risksToDisplay.length - 1;
-          const displayDate = risk.date ? formatDateString(risk.date) : "N/A";
+          const rawRisk = risk as unknown as Record<string, unknown>;
+          const rawDate = (risk.date || rawRisk.trigger_date) as string | undefined;
+          const displayDate = rawDate ? formatDateString(rawDate) : "N/A";
+          const riskTypeName = String(risk.type || rawRisk.risk_type || rawRisk.title || "LIQUIDITY DEFICIT").replace(/_/g, " ");
 
           return (
             <div
@@ -153,7 +156,7 @@ export function CopilotBriefing({
                     {risk.severity}
                   </span>
                   <p className="text-[11.5px] font-semibold leading-none tracking-[-0.01em]">
-                    {risk.type.replace(/_/g, " ")}
+                    {riskTypeName}
                   </p>
                 </div>
                 <p className="font-['IBM_Plex_Mono'] text-[8px] leading-none text-[#7A7364]">

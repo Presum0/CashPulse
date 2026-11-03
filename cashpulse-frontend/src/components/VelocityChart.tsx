@@ -94,20 +94,20 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
   const chartData = React.useMemo(() => {
     if (!projections || projections.length === 0) {
       // Default fallback mock matching the reference
-      const weeks = [
-        { date: "2025-01-24", label: "24 Jan", actual: 482400, forecast: null, balance: 482400, isDeficit: false },
-        { date: "2025-01-31", label: "31 Jan", actual: 450000, forecast: null, balance: 450000, isDeficit: false },
-        { date: "2025-02-07", label: "7 Feb", actual: 410000, forecast: null, balance: 410000, isDeficit: false },
-        { date: "2025-02-14", label: "14 Feb", actual: 360000, forecast: 360000, balance: 360000, isDeficit: false },
-        { date: "2025-02-21", label: "21 Feb", actual: null, forecast: 290000, balance: 290000, isDeficit: false },
-        { date: "2025-02-28", label: "28 Feb", actual: null, forecast: 230000, balance: 230000, isDeficit: false },
-        { date: "2025-03-07", label: "7 Mar", actual: null, forecast: 160000, balance: 160000, isDeficit: false },
-        { date: "2025-03-14", label: "14 Mar", actual: null, forecast: 90000, balance: 90000, isDeficit: false },
-        { date: "2025-03-21", label: "21 Mar", actual: null, forecast: 20000, balance: 20000, isDeficit: false },
-        { date: "2025-03-28", label: "28 Mar", actual: null, forecast: -38600, balance: -38600, isDeficit: true },
-        { date: "2025-04-04", label: "4 Apr", actual: null, forecast: -28000, balance: -28000, isDeficit: true },
-        { date: "2025-04-11", label: "11 Apr", actual: null, forecast: -19000, balance: -19000, isDeficit: true },
-        { date: "2025-04-18", label: "18 Apr", actual: null, forecast: -18900, balance: -18900, isDeficit: true },
+      const weeks: WeeklyPoint[] = [
+        { date: "2025-01-24", label: "24 Jan", actual: 482400, forecast: null, balance: 482400, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-01-31", label: "31 Jan", actual: 450000, forecast: null, balance: 450000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-02-07", label: "7 Feb", actual: 410000, forecast: null, balance: 410000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-02-14", label: "14 Feb", actual: 360000, forecast: 360000, balance: 360000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-02-21", label: "21 Feb", actual: null, forecast: 290000, balance: 290000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-02-28", label: "28 Feb", actual: null, forecast: 230000, balance: 230000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-03-07", label: "7 Mar", actual: null, forecast: 160000, balance: 160000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-03-14", label: "14 Mar", actual: null, forecast: 90000, balance: 90000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-03-21", label: "21 Mar", actual: null, forecast: 20000, balance: 20000, inflow: 0, outflow: 0, isDeficit: false },
+        { date: "2025-03-28", label: "28 Mar", actual: null, forecast: -38600, balance: -38600, inflow: 0, outflow: 0, isDeficit: true },
+        { date: "2025-04-04", label: "4 Apr", actual: null, forecast: -28000, balance: -28000, inflow: 0, outflow: 0, isDeficit: true },
+        { date: "2025-04-11", label: "11 Apr", actual: null, forecast: -19000, balance: -19000, inflow: 0, outflow: 0, isDeficit: true },
+        { date: "2025-04-18", label: "18 Apr", actual: null, forecast: -18900, balance: -18900, inflow: 0, outflow: 0, isDeficit: true },
       ];
       return weeks;
     }
@@ -152,6 +152,7 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
   const minBalance = summary?.min_cash_balance ?? -38600;
   const minDate = summary?.min_cash_date ? formatDateString(summary.min_cash_date) : "28 Mar";
   const policyFloor = summary?.policy_floor ?? 120000;
+  const asOfLabel = summary?.as_of_date ? formatDateString(summary.as_of_date) : "Today";
 
   return (
     <figure className="mt-[13px] flex flex-1 flex-col border border-[#17150F] bg-[#F6F2E8] px-[14px] pb-[9px] pt-[10px]">
@@ -293,7 +294,7 @@ export function VelocityChart({ projections = [], summary }: VelocityChartProps)
 
       {/* Chart Footer Caption */}
       <p className="mt-[6px] shrink-0 font-['IBM_Plex_Mono'] text-[8px] uppercase leading-none tracking-[0.1em] text-[#8A8272]">
-        Solid to 14 Feb · forecast thereafter · trough{" "}
+        Solid to {asOfLabel} · forecast thereafter · trough{" "}
         <span className="text-[#B23428] font-semibold">{formatCurrency(minBalance)}</span> on {minDate} · action drafts modelled
       </p>
     </figure>

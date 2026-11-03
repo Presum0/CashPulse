@@ -83,7 +83,9 @@ export function LeversSection({
 
         let typeLabel = "ar acceleration";
         if (lever.action_type === "EXTEND_AP_TERMS") typeLabel = "vendor terms";
-        else if (lever.action_type === "CREDIT_LINE_DRAW") typeLabel = "credit facility";
+        else if (lever.action_type === "CREDIT_LINE_DRAW" || lever.action_type === "CREDIT_LINE") typeLabel = "credit facility";
+        else if (lever.action_type === "TREASURY_OPTIMIZATION") typeLabel = "yield sweep";
+        else if (lever.action_type === "EARLY_PAYMENT_DISCOUNT") typeLabel = "prompt discount";
 
         return (
           <article

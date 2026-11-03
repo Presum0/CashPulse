@@ -1,25 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Fraunces, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-
-const archivo = Archivo({
-  variable: "--font-archivo",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-ibm-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "CashPulse | AI Working Capital Copilot & 13-Week Treasury Desk",
@@ -32,13 +12,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${archivo.variable} ${fraunces.variable} ${ibmPlexMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className="h-full antialiased">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@100..900&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+        />
+      </head>
       <body className="min-h-full bg-[#F1EDE3] text-[#17150F] font-sans">
         {children}
       </body>
     </html>
   );
 }
+
