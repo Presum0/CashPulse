@@ -17,6 +17,96 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/**
+ * Resolves the active tenant organization ID from argument, URL search params, or storage.
+ */
+export function getActiveOrganizationId(overrideId?: number | string): number {
+  if (overrideId !== undefined && overrideId !== null && !isNaN(Number(overrideId))) {
+    return Number(overrideId);
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlOrg = urlParams.get("orgId");
+      if (urlOrg && !isNaN(Number(urlOrg))) {
+        return Number(urlOrg);
+      }
+      const user = localStorage.getItem("cashpulse_user");
+      if (user) {
+        const parsed = JSON.parse(user);
+        if (parsed.organizationId) return Number(parsed.organizationId);
+      }
+      const onboarding = localStorage.getItem("cashpulse_onboarding_org");
+      if (onboarding) {
+        const parsed = JSON.parse(onboarding);
+        if (parsed.organizationId) return Number(parsed.organizationId);
+      }
+    } catch {
+      // Fallback below
+    }
+  }
+  return 2;
+}
+
+/**
+ * Retrieves the institutional auth token from Clerk session (window.Clerk.session.getToken()),
+ * falling back to stored demo session tokens.
+ */
+export async function getInstitutionalToken(): Promise<string | null> {
+  if (typeof window !== "undefined") {
+    try {
+      // Dynamic Clerk browser window object inspection
+      const clerk = (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string | null> } } }).Clerk;
+      if (clerk?.session?.getToken) {
+        const token = await clerk.session.getToken();
+        if (token) return token;
+      }
+    } catch (err) {
+      console.warn("Could not retrieve Clerk session token:", err);
+    }
+
+    try {
+      const user = localStorage.getItem("cashpulse_user");
+      if (user) {
+        const parsed = JSON.parse(user);
+        return parsed.token || `demo_token_${parsed.role || "CFO"}`;
+      }
+    } catch {
+      // Fallback
+    }
+  }
+  return null;
+}
+
+/**
+ * Institutional secure fetch wrapper that dynamically attaches:
+ * 1. Authorization: Bearer <clerk_token>
+ * 2. X-Organization-ID: <active_tenant_org_id>
+ */
+export async function secureFetch(
+  url: string | URL,
+  init?: RequestInit,
+  organizationId?: number | string
+): Promise<Response> {
+  const orgId = getActiveOrganizationId(organizationId);
+  const token = await getInstitutionalToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Organization-ID": String(orgId),
+    ...(init?.headers as Record<string, string> || {}),
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return fetch(url.toString(), {
+    ...init,
+    headers,
+  });
+}
+
 export function normalizeActionDraft(d: Record<string, unknown>): ActionDraft {
   const actionType = String(d.action_type || "AR_FACTORING");
   const isExtend = actionType === "EXTEND_AP_TERMS";
@@ -332,7 +422,7 @@ export async function createOrganization(
   payload: CreateOrganizationPayload
 ): Promise<{ organization_id: number; name: string; currency: string; status: string }> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/organizations`, {
+    const res = await secureFetch(`${API_BASE_URL}/api/v1/organizations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -361,7 +451,7 @@ export async function createOrganization(
 
 export async function getOrganizations(): Promise<OrganizationInfo[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/organizations`, {
+    const res = await secureFetch(`${API_BASE_URL}/api/v1/organizations`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       cache: "no-store",
@@ -407,11 +497,15 @@ export async function getForecast(
       url.searchParams.append("as_of_date", asOfDate);
     }
 
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    });
+    const res = await secureFetch(
+      url.toString(),
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      },
+      organizationId
+    );
 
     if (res.ok) {
       const data = await res.json();
@@ -524,10 +618,14 @@ export async function runCopilotAnalysis(
       url.searchParams.append("as_of_date", asOfDate);
     }
 
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await secureFetch(
+      url.toString(),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      },
+      organizationId
+    );
 
     if (res.ok) {
       const data = await res.json();
@@ -585,11 +683,15 @@ export async function getActionDrafts(
       url.searchParams.append("status", status);
     }
 
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-    });
+    const res = await secureFetch(
+      url.toString(),
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      },
+      organizationId
+    );
 
     if (res.ok) {
       const data = await res.json();
@@ -607,16 +709,18 @@ export async function getActionDrafts(
 export async function executeActionDraft(
   actionId: number,
   decision: "APPROVE" | "REJECT",
-  notes?: string
+  notes?: string,
+  organizationId?: number
 ): Promise<ActionExecutionResponse> {
   try {
-    const res = await fetch(
+    const res = await secureFetch(
       `${API_BASE_URL}/api/v1/copilot/actions/${actionId}/execute`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision, notes: notes || "" }),
-      }
+      },
+      organizationId
     );
 
     if (res.ok) {
@@ -659,11 +763,15 @@ export async function createPlaidLinkToken(
   organizationId: number
 ): Promise<{ link_token: string; expiration: string; mode: string }> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/plaid/create-link-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organization_id: organizationId }),
-    });
+    const res = await secureFetch(
+      `${API_BASE_URL}/api/v1/plaid/create-link-token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organization_id: organizationId }),
+      },
+      organizationId
+    );
     if (res.ok) {
       return res.json();
     }
@@ -685,11 +793,15 @@ export async function exchangePlaidPublicToken(payload: {
   institution_name?: string;
 }): Promise<PlaidExchangeResponse> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/plaid/exchange-token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await secureFetch(
+      `${API_BASE_URL}/api/v1/plaid/exchange-token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      payload.organization_id
+    );
     if (res.ok) {
       return res.json();
     }
@@ -714,10 +826,14 @@ export async function exchangePlaidPublicToken(payload: {
 
 export async function syncPlaidBankFeeds(organizationId: number): Promise<PlaidSyncResponse> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/plaid/sync/${organizationId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await secureFetch(
+      `${API_BASE_URL}/api/v1/plaid/sync/${organizationId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      },
+      organizationId
+    );
     if (res.ok) {
       return res.json();
     }
@@ -734,9 +850,13 @@ export async function syncPlaidBankFeeds(organizationId: number): Promise<PlaidS
 
 export async function getPlaidItems(organizationId: number): Promise<PlaidItemInfo[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/plaid/items/${organizationId}`, {
-      cache: "no-store",
-    });
+    const res = await secureFetch(
+      `${API_BASE_URL}/api/v1/plaid/items/${organizationId}`,
+      {
+        cache: "no-store",
+      },
+      organizationId
+    );
     if (!res.ok) return [];
     return res.json();
   } catch {
@@ -753,9 +873,10 @@ export async function getAccountingConnectUrl(
   organizationId: number
 ): Promise<{ provider: string; auth_url: string; mode: string }> {
   try {
-    const res = await fetch(
+    const res = await secureFetch(
       `${API_BASE_URL}/api/v1/integrations/accounting/connect/${provider}?organization_id=${organizationId}`,
-      { cache: "no-store" }
+      { cache: "no-store" },
+      organizationId
     );
     if (res.ok) {
       return res.json();
@@ -774,12 +895,13 @@ export async function syncAccountingLedger(
   provider: "xero" | "quickbooks" = "xero"
 ): Promise<AccountingSyncResponse> {
   try {
-    const res = await fetch(
+    const res = await secureFetch(
       `${API_BASE_URL}/api/v1/integrations/accounting/sync/${organizationId}?provider=${provider}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-      }
+      },
+      organizationId
     );
     if (res.ok) {
       return res.json();
@@ -801,9 +923,10 @@ export async function syncAccountingLedger(
 
 export async function getAccountingConnections(organizationId: number): Promise<AccountingConnectionInfo[]> {
   try {
-    const res = await fetch(
+    const res = await secureFetch(
       `${API_BASE_URL}/api/v1/integrations/accounting/connections/${organizationId}`,
-      { cache: "no-store" }
+      { cache: "no-store" },
+      organizationId
     );
     if (!res.ok) return [];
     return res.json();

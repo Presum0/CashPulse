@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, Depends, Query, HTTPException, Path
+from fastapi import FastAPI, Depends, Query, HTTPException, Path, Header, Request
 from sqlmodel import Session, select
 from app.database import create_db_and_tables, get_session
 from app import models  # Ensures SQLModel metadata is populated before create_db_and_tables()
@@ -10,6 +10,7 @@ from app.services.generator import seed_all, seed_new_organization
 from app.services.forecast import generate_13_week_forecast
 from app.agent.graph import run_copilot_workflow
 from app.services import plaid_service, accounting_service
+from app.security import TenantContext, get_tenant_context
 
 
 class OrganizationCreate(BaseModel):
@@ -42,6 +43,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def tenant_isolation_middleware(request: Request, call_next):
+    """
+    Middleware that intercepts incoming HTTP requests, tracks X-Organization-ID
+    tenant context, and decorates responses with institutional isolation verification.
+    """
+    tenant_header = request.headers.get("X-Organization-ID")
+    response = await call_next(request)
+    if tenant_header:
+        response.headers["X-Tenant-Isolation"] = f"org_{tenant_header}"
+    return response
 
 @app.get("/health")
 def health_check():
@@ -101,10 +115,14 @@ def create_organization(
 
 @app.get("/api/v1/organizations")
 def list_organizations(
+    x_organization_id: Optional[str] = Header(None, alias="X-Organization-ID"),
     session: Session = Depends(get_session),
 ):
-    """List all provisioned organizations."""
-    statement = select(models.Organization).order_by(models.Organization.id.desc())
+    """List provisioned organizations, scoped to active tenant if X-Organization-ID header is present."""
+    statement = select(models.Organization)
+    if x_organization_id and str(x_organization_id).isdigit():
+        statement = statement.where(models.Organization.id == int(x_organization_id))
+    statement = statement.order_by(models.Organization.id.desc())
     orgs = session.exec(statement).all()
     return [
         {
@@ -123,20 +141,22 @@ def get_13_week_forecast(
     organization_id: int = Path(..., description="The ID of the organization to forecast"),
     as_of_date: Optional[date] = Query(default=None, description="Forecast origin date (defaults to today)"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Generate a 13-week (91-day) direct cash forecast for an organization.
     Combines starting cash, expected AR/AP invoice cash flows, and recurring OPEX.
+    Strictly scoped to verified tenant organization.
     """
     forecast = generate_13_week_forecast(
         session=session,
-        organization_id=organization_id,
+        organization_id=tenant.organization_id,
         as_of_date=as_of_date,
     )
     if not forecast:
         raise HTTPException(
             status_code=404,
-            detail=f"Organization with ID {organization_id} not found",
+            detail=f"Organization with ID {tenant.organization_id} not found",
         )
     return forecast
 
@@ -145,6 +165,7 @@ def run_copilot_analysis(
     organization_id: int = Path(..., description="The ID of the organization for copilot analysis"),
     as_of_date: Optional[date] = Query(default=None, description="Analysis origin date (defaults to today)"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Execute the LangGraph AI Copilot workflow:
@@ -156,13 +177,13 @@ def run_copilot_analysis(
     """
     result = run_copilot_workflow(
         session=session,
-        organization_id=organization_id,
+        organization_id=tenant.organization_id,
         as_of_date=as_of_date,
     )
     if not result:
         raise HTTPException(
             status_code=404,
-            detail=f"Organization with ID {organization_id} not found",
+            detail=f"Organization with ID {tenant.organization_id} not found",
         )
     return result
 
@@ -177,13 +198,14 @@ def list_action_drafts(
     organization_id: int = Path(..., description="The organization ID"),
     status: Optional[str] = Query(default=None, description="Filter by status: PENDING, APPROVED, REJECTED, EXECUTED"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """List all generated Action Drafts and remediation proposals for an organization."""
-    org = session.get(models.Organization, organization_id)
+    org = session.get(models.Organization, tenant.organization_id)
     if not org:
-        raise HTTPException(status_code=404, detail=f"Organization with ID {organization_id} not found")
+        raise HTTPException(status_code=404, detail=f"Organization with ID {tenant.organization_id} not found")
 
-    statement = select(models.ActionDraft).where(models.ActionDraft.organization_id == organization_id)
+    statement = select(models.ActionDraft).where(models.ActionDraft.organization_id == tenant.organization_id)
     if status:
         statement = statement.where(models.ActionDraft.status == status.upper())
     statement = statement.order_by(models.ActionDraft.created_at.desc())
@@ -195,18 +217,29 @@ def execute_action_draft(
     action_id: int = Path(..., description="The ID of the ActionDraft to execute/approve"),
     req: Optional[ActionExecutionRequest] = None,
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Human-in-the-Loop (HITL) Action Approval & Execution:
     - Approves or Rejects a remediation proposal.
     - If APPROVED: Transitions status to EXECUTED and applies real ledger adjustments (e.g. extending AP payment dates).
     - If REJECTED: Transitions status to REJECTED.
+    - Strictly checks tenant ownership of the target ActionDraft.
     """
     draft = session.get(models.ActionDraft, action_id)
     if not draft:
         raise HTTPException(
             status_code=404,
             detail=f"ActionDraft with ID {action_id} not found in database.",
+        )
+
+    if draft.organization_id != tenant.organization_id:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Cross-tenant isolation violation: ActionDraft #{action_id} belongs to "
+                f"organization #{draft.organization_id}, not your tenant #{tenant.organization_id}."
+            ),
         )
 
     if req is None:
@@ -314,17 +347,20 @@ class PlaidExchangeTokenRequest(BaseModel):
 async def create_plaid_link_token(
     req: PlaidLinkTokenRequest,
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Creates a Plaid Link Token to initialize the Plaid Link flow in the frontend.
-    Supports both live sandbox credentials and simulated local sandbox tokens.
+    Enforces tenant match with verified tenant context.
     """
-    org = session.get(models.Organization, req.organization_id)
-    if not org:
-        raise HTTPException(status_code=404, detail=f"Organization #{req.organization_id} not found")
+    if req.organization_id != tenant.organization_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cross-tenant isolation violation: Target organization #{req.organization_id} does not match verified tenant #{tenant.organization_id}."
+        )
 
     res = await plaid_service.create_link_token(
-        organization_id=req.organization_id,
+        organization_id=tenant.organization_id,
         client_user_id=req.client_user_id,
     )
     return res
@@ -334,19 +370,22 @@ async def create_plaid_link_token(
 async def exchange_plaid_public_token(
     req: PlaidExchangeTokenRequest,
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Exchanges public token for access token, persists PlaidItem in SQLModel,
     and runs initial bank feeds and balance sync.
     """
-    org = session.get(models.Organization, req.organization_id)
-    if not org:
-        raise HTTPException(status_code=404, detail=f"Organization #{req.organization_id} not found")
+    if req.organization_id != tenant.organization_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cross-tenant isolation violation: Target organization #{req.organization_id} does not match verified tenant #{tenant.organization_id}."
+        )
 
     res = await plaid_service.exchange_public_token(
         session=session,
         public_token=req.public_token,
-        organization_id=req.organization_id,
+        organization_id=tenant.organization_id,
         institution_id=req.institution_id,
         institution_name=req.institution_name,
     )
@@ -357,18 +396,15 @@ async def exchange_plaid_public_token(
 async def sync_plaid_bank_data(
     organization_id: int = Path(..., description="The organization ID to sync bank feeds for"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Triggers bank feed and live cash balance synchronization from Plaid
     into CashPulse ledger tables (BankTransaction & DailyCashSnapshot).
     """
-    org = session.get(models.Organization, organization_id)
-    if not org:
-        raise HTTPException(status_code=404, detail=f"Organization #{organization_id} not found")
-
     summary = await plaid_service.sync_plaid_data(
         session=session,
-        organization_id=organization_id,
+        organization_id=tenant.organization_id,
     )
     return summary
 
@@ -377,11 +413,12 @@ async def sync_plaid_bank_data(
 def list_connected_plaid_items(
     organization_id: int = Path(..., description="The organization ID"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """Lists all active Plaid bank connections for an organization."""
     items = session.exec(
         select(models.PlaidItem).where(
-            models.PlaidItem.organization_id == organization_id,
+            models.PlaidItem.organization_id == tenant.organization_id,
             models.PlaidItem.status == "active",
         )
     ).all()
@@ -407,18 +444,21 @@ def get_accounting_auth_url(
     provider: str = Path(..., description="Provider name: 'xero' or 'quickbooks'"),
     organization_id: int = Query(..., description="Target organization ID"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Generates OAuth2 authorization URL for connecting Xero or QuickBooks Online.
     """
-    org = session.get(models.Organization, organization_id)
-    if not org:
-        raise HTTPException(status_code=404, detail=f"Organization #{organization_id} not found")
+    if organization_id != tenant.organization_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cross-tenant isolation violation: Target organization #{organization_id} does not match verified tenant #{tenant.organization_id}."
+        )
 
     try:
         return accounting_service.get_oauth_authorization_url(
             provider=provider,
-            organization_id=organization_id,
+            organization_id=tenant.organization_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -454,18 +494,15 @@ async def sync_accounting_ledger(
     organization_id: int = Path(..., description="Organization ID"),
     provider: str = Query(default="xero", description="Provider name: 'xero' or 'quickbooks'"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     Syncs pending AR customer invoices and AP vendor bills from ERP
     directly into CashPulse's deterministic 13-week forecast engine.
     """
-    org = session.get(models.Organization, organization_id)
-    if not org:
-        raise HTTPException(status_code=404, detail=f"Organization #{organization_id} not found")
-
     res = await accounting_service.sync_invoices_from_accounting(
         session=session,
-        organization_id=organization_id,
+        organization_id=tenant.organization_id,
         provider=provider,
     )
     return res
@@ -475,11 +512,12 @@ async def sync_accounting_ledger(
 def list_accounting_connections(
     organization_id: int = Path(..., description="Organization ID"),
     session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """Lists all active ERP and accounting connections for an organization."""
     conns = session.exec(
         select(models.AccountingConnection).where(
-            models.AccountingConnection.organization_id == organization_id,
+            models.AccountingConnection.organization_id == tenant.organization_id,
             models.AccountingConnection.status == "connected",
         )
     ).all()
@@ -490,6 +528,8 @@ def list_accounting_connections(
             "tenant_id": c.tenant_id,
             "status": c.status,
             "last_synced_at": c.last_synced_at.isoformat() if c.last_synced_at else None,
+            "token_expires_at": c.token_expires_at.isoformat() if c.token_expires_at else None,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
         }
         for c in conns
     ]

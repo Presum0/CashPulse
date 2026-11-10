@@ -105,7 +105,7 @@ function CashPulseDashboardContent() {
 
   const handleApproveAction = async (actionId: number, notes?: string) => {
     try {
-      const res = await executeActionDraft(actionId, "APPROVE", notes);
+      const res = await executeActionDraft(actionId, "APPROVE", notes, organizationId);
       setExecutionMessage(
         res.ledger_impact || `Action #${actionId} approved and executed successfully.`
       );
@@ -144,7 +144,7 @@ function CashPulseDashboardContent() {
 
   const handleRejectAction = async (actionId: number, notes?: string) => {
     try {
-      await executeActionDraft(actionId, "REJECT", notes);
+      await executeActionDraft(actionId, "REJECT", notes, organizationId);
       const updatedDrafts = await getActionDrafts(organizationId);
       setActionDrafts(updatedDrafts);
 

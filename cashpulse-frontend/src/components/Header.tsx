@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import { formatFullDateString } from "@/lib/utils";
 import { OrganizationInfo } from "@/lib/types";
 
@@ -133,6 +134,27 @@ export function Header({
             </span>
           </div>
         )}
+
+        {/* Clerk Institutional User Identity */}
+        <div className="flex items-center pl-[2px]">
+          <SignedIn>
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: "h-[28px] w-[28px] rounded-none border border-[#17150F]",
+                },
+              }}
+            />
+          </SignedIn>
+          <SignedOut>
+            <Link
+              href="/login"
+              className="border border-[#17150F] bg-[#FFFDF7] px-[8px] py-[6px] font-['IBM_Plex_Mono'] text-[8.5px] uppercase tracking-[0.14em] hover:bg-[#17150F] hover:text-[#F6F2E8] transition-colors"
+            >
+              Sign In
+            </Link>
+          </SignedOut>
+        </div>
       </div>
     </header>
   );
