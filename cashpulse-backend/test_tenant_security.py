@@ -70,7 +70,47 @@ def test_tenant_isolation_suite():
     )
     assert res_plaid_violation.status_code == 403, f"Expected 403, got {res_plaid_violation.status_code}"
 
-    print("ALL TENANT SECURITY & ISOLATION TESTS PASSED CLEANLY!")
+    # 5. Audit Log retrieval for tenant 2
+    res_audit = client.get(
+        "/api/v1/audit-logs/2",
+        headers={
+            "Authorization": "Bearer test_clerk_token_cfo",
+            "X-Organization-ID": "2",
+        },
+    )
+    assert res_audit.status_code == 200, f"Expected 200, got {res_audit.status_code}: {res_audit.text}"
+    audit_data = res_audit.json()
+    assert isinstance(audit_data, list), "Expected list of audit logs"
+    assert len(audit_data) > 0, "Expected at least 1 audit log"
+    first_log = audit_data[0]
+    assert "id" in first_log
+    assert "action_type" in first_log
+    assert "timestamp" in first_log
+    assert first_log["organization_id"] == 2
+
+    # 6. Audit Log cross-tenant violation (Tenant 1 requesting Tenant 2 audit logs)
+    res_audit_violation = client.get(
+        "/api/v1/audit-logs/2",
+        headers={
+            "Authorization": "Bearer test_clerk_token_cfo",
+            "X-Organization-ID": "1",
+        },
+    )
+    assert res_audit_violation.status_code == 403, f"Expected 403, got {res_audit_violation.status_code}"
+
+    # 7. Policy floor update and audit logging verification
+    res_floor = client.patch(
+        "/api/v1/organizations/2/policy-floor",
+        headers={
+            "Authorization": "Bearer test_clerk_token_cfo",
+            "X-Organization-ID": "2",
+        },
+        json={"policy_floor": 130000.0, "rationale": "Audit test buffer update"},
+    )
+    assert res_floor.status_code == 200
+    assert res_floor.json()["policy_floor"] == 130000.0
+
+    print("ALL TENANT SECURITY & AUDIT TRAIL TESTS PASSED CLEANLY!")
 
 if __name__ == "__main__":
     test_tenant_isolation_suite()

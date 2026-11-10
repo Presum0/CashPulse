@@ -9,7 +9,7 @@ from app import models  # Ensures SQLModel metadata is populated before create_d
 from app.services.generator import seed_all, seed_new_organization
 from app.services.forecast import generate_13_week_forecast
 from app.agent.graph import run_copilot_workflow
-from app.services import plaid_service, accounting_service
+from app.services import plaid_service, accounting_service, audit_service
 from app.security import TenantContext, get_tenant_context
 
 
@@ -296,6 +296,23 @@ def execute_action_draft(
         session.commit()
         session.refresh(draft)
 
+        # Log immutable compliance audit trail record
+        audit_service.log_audit_event(
+            session=session,
+            organization_id=tenant.organization_id,
+            action_type="APPROVE_ACTION_DRAFT",
+            user_email="cfo@doyle.com",
+            user_id=tenant.user_id,
+            payload_summary={
+                "action_id": draft.id,
+                "action_type": draft.action_type,
+                "title": draft.title,
+                "estimated_impact": draft.estimated_impact,
+                "notes": req.notes,
+                "ledger_impact": ledger_impact_notes,
+            },
+        )
+
         return {
             "status": "EXECUTED",
             "action_id": draft.id,
@@ -311,6 +328,21 @@ def execute_action_draft(
         session.add(draft)
         session.commit()
         session.refresh(draft)
+
+        # Log immutable compliance audit trail record
+        audit_service.log_audit_event(
+            session=session,
+            organization_id=tenant.organization_id,
+            action_type="REJECT_ACTION_DRAFT",
+            user_email="cfo@doyle.com",
+            user_id=tenant.user_id,
+            payload_summary={
+                "action_id": draft.id,
+                "action_type": draft.action_type,
+                "title": draft.title,
+                "notes": req.notes,
+            },
+        )
 
         return {
             "status": "REJECTED",
@@ -405,6 +437,15 @@ async def sync_plaid_bank_data(
     summary = await plaid_service.sync_plaid_data(
         session=session,
         organization_id=tenant.organization_id,
+    )
+    # Log immutable compliance audit trail record
+    audit_service.log_audit_event(
+        session=session,
+        organization_id=tenant.organization_id,
+        action_type="SYNC_PLAID",
+        user_email="cfo@doyle.com",
+        user_id=tenant.user_id,
+        payload_summary=summary,
     )
     return summary
 
@@ -505,6 +546,16 @@ async def sync_accounting_ledger(
         organization_id=tenant.organization_id,
         provider=provider,
     )
+
+    # Log immutable compliance audit trail record
+    audit_service.log_audit_event(
+        session=session,
+        organization_id=tenant.organization_id,
+        action_type="SYNC_QUICKBOOKS" if provider.lower() in ["quickbooks", "qbo"] else "SYNC_XERO",
+        user_email="cfo@doyle.com",
+        user_id=tenant.user_id,
+        payload_summary=res,
+    )
     return res
 
 
@@ -533,6 +584,88 @@ def list_accounting_connections(
         }
         for c in conns
     ]
+
+
+# =====================================================================
+# IMMUTABLE AUDIT TRAIL & COMPLIANCE LOGS API
+# =====================================================================
+
+class PolicyFloorUpdate(BaseModel):
+    policy_floor: float = Field(..., ge=0, description="New policy buffer floor amount")
+    rationale: Optional[str] = Field(default=None, description="Executive justification for floor modification")
+
+
+@app.patch("/api/v1/organizations/{organization_id}/policy-floor")
+def update_policy_floor(
+    organization_id: int = Path(..., description="The organization ID"),
+    req: PolicyFloorUpdate = ...,
+    session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """
+    Updates the organization's policy buffer floor and logs an immutable audit event.
+    """
+    org = session.get(models.Organization, tenant.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    old_floor = org.policy_floor
+    org.policy_floor = req.policy_floor
+    session.add(org)
+    session.commit()
+    session.refresh(org)
+
+    audit_service.log_audit_event(
+        session=session,
+        organization_id=tenant.organization_id,
+        action_type="UPDATE_POLICY_FLOOR",
+        user_email="cfo@doyle.com",
+        user_id=tenant.user_id,
+        payload_summary={
+            "previous_policy_floor": old_floor,
+            "new_policy_floor": org.policy_floor,
+            "rationale": req.rationale or "Treasury buffer policy recalibration",
+        },
+    )
+
+    return {
+        "status": "SUCCESS",
+        "organization_id": org.id,
+        "policy_floor": org.policy_floor,
+        "previous_policy_floor": old_floor,
+        "message": f"Policy floor updated to ${org.policy_floor:,.2f}.",
+    }
+
+
+@app.get("/api/v1/audit-logs/{organization_id}")
+def get_audit_logs_endpoint(
+    organization_id: int = Path(..., description="The organization ID"),
+    limit: int = Query(default=50, ge=1, le=200, description="Max audit logs to return"),
+    session: Session = Depends(get_session),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """
+    Returns the tenant's immutable audit logs and compliance history.
+    Strictly isolated to verified tenant organization.
+    """
+    logs = audit_service.get_audit_logs(
+        session=session,
+        organization_id=tenant.organization_id,
+        limit=limit,
+    )
+    return [
+        {
+            "id": log.id,
+            "organization_id": log.organization_id,
+            "user_email": log.user_email,
+            "user_id": log.user_id,
+            "action_type": log.action_type,
+            "payload_summary": log.payload_summary,
+            "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+        }
+        for log in logs
+    ]
+
 
 
 

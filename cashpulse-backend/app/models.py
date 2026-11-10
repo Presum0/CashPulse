@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Optional, List
@@ -35,6 +36,7 @@ class Organization(OrganizationBase, table=True):
     action_drafts: List["ActionDraft"] = Relationship(back_populates="organization")
     plaid_items: List["PlaidItem"] = Relationship(back_populates="organization")
     accounting_connections: List["AccountingConnection"] = Relationship(back_populates="organization")
+    audit_logs: List["AuditLog"] = Relationship(back_populates="organization")
 
 # --- Invoice Schema (Pending & Expected Cash Flows) ---
 class InvoiceBase(SQLModel):
@@ -125,5 +127,19 @@ class AccountingConnection(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     organization: Optional[Organization] = Relationship(back_populates="accounting_connections")
+
+
+# --- Immutable Audit Trail & Compliance Schema ---
+class AuditLog(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    organization_id: int = Field(foreign_key="organization.id", index=True)
+    user_email: Optional[str] = Field(default=None, index=True)
+    user_id: Optional[str] = Field(default=None, index=True)
+    action_type: str = Field(index=True)
+    payload_summary: Optional[str] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+
+    organization: Optional[Organization] = Relationship(back_populates="audit_logs")
+
 
 

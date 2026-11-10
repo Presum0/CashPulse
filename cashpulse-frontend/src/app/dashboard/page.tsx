@@ -8,11 +8,13 @@ import { VelocityChart } from "@/components/VelocityChart";
 import { LeversSection } from "@/components/LeversSection";
 import { CopilotBriefing } from "@/components/CopilotBriefing";
 import { ApprovalDrawer } from "@/components/ApprovalDrawer";
+import { AuditTrailView } from "@/components/AuditTrailView";
 import {
   ForecastResponse,
   ActionDraft,
   CopilotAnalysisResponse,
   OrganizationInfo,
+  AuditLogEntry,
 } from "@/lib/types";
 import {
   getForecast,
@@ -20,6 +22,7 @@ import {
   getActionDrafts,
   executeActionDraft,
   getOrganizations,
+  getAuditLogs,
 } from "@/lib/api";
 import { formatCurrency, formatDateString } from "@/lib/utils";
 
@@ -40,6 +43,9 @@ function CashPulseDashboardContent() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [executionMessage, setExecutionMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"forecaster" | "audit">("forecaster");
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [isLoadingAudit, setIsLoadingAudit] = useState(false);
 
   // Load organizations for header switcher
   useEffect(() => {
@@ -48,6 +54,18 @@ function CashPulseDashboardContent() {
         setOrganizations(orgs);
       }
     });
+  }, [organizationId]);
+
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      setIsLoadingAudit(true);
+      const logs = await getAuditLogs(organizationId);
+      setAuditLogs(logs);
+    } catch (e) {
+      console.warn("Could not load audit logs:", e);
+    } finally {
+      setIsLoadingAudit(false);
+    }
   }, [organizationId]);
 
   const loadData = useCallback(async () => {
@@ -72,12 +90,15 @@ function CashPulseDashboardContent() {
         const drafts = await getActionDrafts(organizationId);
         setActionDrafts(drafts);
       }
+
+      // 3. Fetch audit logs
+      await loadAuditLogs();
     } catch (err) {
       console.warn("Backend notice: Using cached data for display.", err);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [organizationId]);
+  }, [organizationId, loadAuditLogs]);
 
   useEffect(() => {
     let active = true;
@@ -127,6 +148,9 @@ function CashPulseDashboardContent() {
         );
       }
 
+      // Refresh immutable compliance audit trail
+      await loadAuditLogs();
+
       setTimeout(() => setExecutionMessage(null), 6000);
     } catch (err: unknown) {
       console.error("Failed to approve action:", err);
@@ -138,6 +162,7 @@ function CashPulseDashboardContent() {
         prev && prev.id === actionId ? { ...prev, status: "EXECUTED" } : prev
       );
       setExecutionMessage(`Action #${actionId} approved locally.`);
+      await loadAuditLogs();
       setTimeout(() => setExecutionMessage(null), 6000);
     }
   };
@@ -156,6 +181,9 @@ function CashPulseDashboardContent() {
           prev && prev.id === actionId ? { ...prev, status: "REJECTED" } : prev
         );
       }
+
+      // Refresh immutable compliance audit trail
+      await loadAuditLogs();
     } catch (err: unknown) {
       console.error("Failed to reject action:", err);
       // Update local state gracefully if offline or mock
@@ -165,6 +193,7 @@ function CashPulseDashboardContent() {
       setSelectedDraft((prev) =>
         prev && prev.id === actionId ? { ...prev, status: "REJECTED" } : prev
       );
+      await loadAuditLogs();
     }
   };
 
@@ -218,72 +247,123 @@ function CashPulseDashboardContent() {
           }}
         />
 
-        {/* 2. KPI Bar */}
-        <KpiBar summary={summary} />
-
-        {/* 3. Main Desk */}
-        <main className="relative mt-[13px] flex min-h-0 flex-1 flex-col lg:flex-row gap-[22px]">
-          {/* Left Column: Story + Velocity Chart + Levers */}
-          <div className="flex min-w-0 flex-1 flex-col">
-            {/* Front Page Story */}
-            <div className="shrink-0">
-              <div className="flex items-center gap-[8px]">
-                <span className="h-[7px] w-[7px] bg-[#B23428]" />
-                <p className="font-['IBM_Plex_Mono'] text-[9px] uppercase leading-none tracking-[0.18em]">
-                  Front page · cash at risk
-                </p>
-              </div>
-              <h1 className="mt-[9px] font-['Fraunces'] text-[36px] sm:text-[42px] font-normal leading-[1.0] tracking-[-0.028em]">
-                {minCash < 0 ? (
-                  <>
-                    A{" "}
-                    <span className="italic text-[#B23428]">
-                      {formatCurrency(Math.abs(minCash))}
-                    </span>{" "}
-                    shortfall opens on {firstDeficit}.
-                  </>
-                ) : (
-                  <>
-                    Treasury buffer holds at{" "}
-                    <span className="italic text-[#2F5D3A]">
-                      {formatCurrency(minCash)}
-                    </span>{" "}
-                    across the 13-week horizon.
-                  </>
-                )}
-              </h1>
-              <p className="mt-[8px] max-w-[700px] text-[12.5px] leading-[1.45] tracking-[-0.005em] text-[#5E594D]">
-                Copilot synthesized {actionDrafts.length} working capital levers for this workspace.{" "}
-                {actionDrafts.filter((d) => d.status === "PENDING").length} awaiting executive approval in the queue.
-              </p>
-            </div>
-
-            {/* Velocity Chart */}
-            <VelocityChart
-              projections={forecastData?.daily_projections}
-              summary={summary}
-            />
-
-            {/* Action Levers */}
-            <LeversSection
-              actionDrafts={actionDrafts}
-              recommendedActions={copilotData?.recommended_actions}
-              onSelectAction={handleSelectAction}
-            />
+        {/* View Mode Navigation Tabs */}
+        <div className="mt-[12px] flex items-center justify-between border-b border-[#17150F] pb-[4px]">
+          <div className="flex items-center gap-[6px]">
+            <button
+              type="button"
+              onClick={() => setActiveTab("forecaster")}
+              className={`px-[12px] py-[6px] font-['IBM_Plex_Mono'] text-[9.5px] uppercase tracking-[0.16em] transition-colors border ${
+                activeTab === "forecaster"
+                  ? "border-[#17150F] bg-[#17150F] text-[#F6F2E8] font-semibold"
+                  : "border-transparent bg-transparent text-[#7A7364] hover:text-[#17150F] hover:bg-[#EAE3D2]"
+              }`}
+            >
+              13-Week Treasury Forecaster
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("audit")}
+              className={`flex items-center gap-[6px] px-[12px] py-[6px] font-['IBM_Plex_Mono'] text-[9.5px] uppercase tracking-[0.16em] transition-colors border ${
+                activeTab === "audit"
+                  ? "border-[#17150F] bg-[#17150F] text-[#F6F2E8] font-semibold"
+                  : "border-transparent bg-transparent text-[#7A7364] hover:text-[#17150F] hover:bg-[#EAE3D2]"
+              }`}
+            >
+              <span>Compliance & Audit Trail</span>
+              <span className="rounded-full bg-[#C8F14E] text-[#17150F] px-[6px] py-[1px] text-[8px] font-bold">
+                {auditLogs.length}
+              </span>
+            </button>
           </div>
 
-          {/* Right Rail: AI Copilot Briefing & Risks */}
-          <CopilotBriefing
-            briefingText={
-              copilotData?.reasoning_trace?.[0] ||
-              "Treasury cash flows analyzed through 13-week rolling forecast. Reconciled invoices, recurring opex, and bank feeds scanned for liquidity buffer optimization."
-            }
-            reasoningTrace={copilotData?.reasoning_trace}
-            detectedRisks={copilotData?.detected_risks}
-            actionDrafts={actionDrafts}
-            onOpenQueue={handleOpenQueue}
-          />
-        </main>
+          <div className="hidden sm:flex items-center gap-[8px] font-['IBM_Plex_Mono'] text-[8.5px] uppercase tracking-[0.14em] text-[#7A7364]">
+            <span>Active Tenant: Org #{organizationId}</span>
+            <span>•</span>
+            <span>SOC-2 Immutable Ledger</span>
+          </div>
+        </div>
+
+        {activeTab === "audit" ? (
+          <div className="mt-[16px]">
+            <AuditTrailView
+              logs={auditLogs}
+              organizationId={organizationId}
+              organizationName={forecastData?.organization_name}
+              isLoading={isLoadingAudit}
+              onRefresh={loadAuditLogs}
+            />
+          </div>
+        ) : (
+          <>
+            {/* 2. KPI Bar */}
+            <KpiBar summary={summary} />
+
+            {/* 3. Main Desk */}
+            <main className="relative mt-[13px] flex min-h-0 flex-1 flex-col lg:flex-row gap-[22px]">
+              {/* Left Column: Story + Velocity Chart + Levers */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                {/* Front Page Story */}
+                <div className="shrink-0">
+                  <div className="flex items-center gap-[8px]">
+                    <span className="h-[7px] w-[7px] bg-[#B23428]" />
+                    <p className="font-['IBM_Plex_Mono'] text-[9px] uppercase leading-none tracking-[0.18em]">
+                      Front page · cash at risk
+                    </p>
+                  </div>
+                  <h1 className="mt-[9px] font-['Fraunces'] text-[36px] sm:text-[42px] font-normal leading-[1.0] tracking-[-0.028em]">
+                    {minCash < 0 ? (
+                      <>
+                        A{" "}
+                        <span className="italic text-[#B23428]">
+                          {formatCurrency(Math.abs(minCash))}
+                        </span>{" "}
+                        shortfall opens on {firstDeficit}.
+                      </>
+                    ) : (
+                      <>
+                        Treasury buffer holds at{" "}
+                        <span className="italic text-[#2F5D3A]">
+                          {formatCurrency(minCash)}
+                        </span>{" "}
+                        across the 13-week horizon.
+                      </>
+                    )}
+                  </h1>
+                  <p className="mt-[8px] max-w-[700px] text-[12.5px] leading-[1.45] tracking-[-0.005em] text-[#5E594D]">
+                    Copilot synthesized {actionDrafts.length} working capital levers for this workspace.{" "}
+                    {actionDrafts.filter((d) => d.status === "PENDING").length} awaiting executive approval in the queue.
+                  </p>
+                </div>
+
+                {/* Velocity Chart */}
+                <VelocityChart
+                  projections={forecastData?.daily_projections}
+                  summary={summary}
+                />
+
+                {/* Action Levers */}
+                <LeversSection
+                  actionDrafts={actionDrafts}
+                  recommendedActions={copilotData?.recommended_actions}
+                  onSelectAction={handleSelectAction}
+                />
+              </div>
+
+              {/* Right Rail: AI Copilot Briefing & Risks */}
+              <CopilotBriefing
+                briefingText={
+                  copilotData?.reasoning_trace?.[0] ||
+                  "Treasury cash flows analyzed through 13-week rolling forecast. Reconciled invoices, recurring opex, and bank feeds scanned for liquidity buffer optimization."
+                }
+                reasoningTrace={copilotData?.reasoning_trace}
+                detectedRisks={copilotData?.detected_risks}
+                actionDrafts={actionDrafts}
+                onOpenQueue={handleOpenQueue}
+              />
+            </main>
+          </>
+        )}
       </div>
 
       {/* Slide-out Approval Drawer */}

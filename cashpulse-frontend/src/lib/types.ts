@@ -168,5 +168,16 @@ export interface AccountingSyncResponse {
   synced_at: string;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  organization_id: number;
+  user_email?: string;
+  user_id?: string;
+  action_type: string;
+  payload_summary?: string;
+  timestamp: string;
+}
+
+
 
 
